@@ -254,7 +254,8 @@ architecture DAPHNE2_arch of DAPHNE2 is
         clka:  in std_logic;  
         reset: in std_logic; -- reset sync to clka
         trig:  in std_logic; -- trigger pulse sync to clka
-        dia:   in std_logic_vector(15 downto 0); -- data bus from AFE channel    
+        dia:   in std_logic_vector(15 downto 0); -- data bus from AFE channel 
+        a_in:  in std_logic_vector(4 downto 0);   
         clkb:  in  std_logic;
         addrb: in  std_logic_vector(11 downto 0);
         dob:   out std_logic_vector(15 downto 0)
@@ -270,6 +271,23 @@ architecture DAPHNE2_arch of DAPHNE2 is
         spi_mosi: in std_logic; 
         spi_miso: out std_logic;
         spi_irq: out std_logic
+    );
+    end component;
+
+    component hpf_pedestal_recovery_filter_trigger
+    port(
+        clk: in std_logic;
+        reset: in std_logic;
+        n_1_reset: in std_logic;
+        enable: in std_logic;
+        write_threshold_value: in std_logic;
+        threshold_ch: in std_logic_vector(7 downto 0);
+        threshold_value: in std_logic_vector(31 downto 0); 
+        output_selector: in std_logic_vector(1 downto 0);
+        x: in std_logic_vector(719 downto 0);
+        trigger_output: out std_logic_vector(39 downto 0);
+        threshold_value_read: out std_logic_vector(31 downto 0);
+        y: out std_logic_vector(719 downto 0)
     );
     end component;
 
@@ -333,10 +351,36 @@ architecture DAPHNE2_arch of DAPHNE2 is
     signal sclk200, sclk100, mclk, fclk: std_logic;
 
     signal trig_sync, trig_gbe: std_logic;
-    signal trig_gbe0_reg, trig_gbe1_reg, trig_gbe2_reg: std_logic;
+    signal trig_gbe0_reg, trig_gbe1_reg, trig_gbe2_reg, trig_gbe_total: std_logic;
+    signal trig_gui_dead_time_reg0, trig_gui_dead_time_reg1, trig_gui_dead_time_reg2, trig_gui_dead_time_total: std_logic;
+    signal trig_internal_enable: std_logic := '1';
+    signal trigger_internal: std_logic;
+    signal trig_gui_dead_time: std_logic;
+    signal pre_trigger_selector: std_logic_vector(4 downto 0) := (others => '0');
+    -- Filter trigger module signals ------------------------------------
+
+    signal trigger_module_ch_enable: std_logic_vector(39 downto 0) := (others => '0');
+
+    signal ch_trigger: std_logic_vector(39 downto 0);
+
+    signal trigger_filter_enable: std_logic := '0';
+    signal trigger_filter_enable_we: std_logic := '0';
+    signal trigger_filter_output_selector_value: std_logic_vector(1 downto 0) := (others => '0');
+
+    signal afe_dout_pad_bits: std_logic_vector(719 downto 0);
+    signal afe_dout_pad_filtered_bits: std_logic_vector(719 downto 0);
+
+    signal write_threshold_value: std_logic;
+    signal threshold_ch: std_logic_vector(7 downto 0);
+    signal threshold_value: std_logic_vector(31 downto 0);
+    signal threshold_value_read: std_logic_vector(31 downto 0);
+    signal threshold_value_read_reg: std_logic_vector(31 downto 0);
+    signal threshold_config_we, threshold_config_we_reg_0, threshold_config_we_reg_1, threshold_config_we_reg_2, trigger_ch_enable_config_we: std_logic;
+    ---------------------------------------------------------------------
 
     signal afe_dout: array_5x9x14_type;
     signal afe_dout_pad: array_5x9x16_type;
+    signal afe_dout_filtered: array_5x9x16_type;
     signal fe_done, fe_warn: std_logic_vector(4 downto 0);
     signal spy_bufr: array_5x9x16_type;
     signal core_spy_data: std_logic_vector(31 downto 0);
@@ -439,6 +483,7 @@ begin
     -- square this up and edge detect this and move it into the MCLK domain
 
     trig_gbe <= '1' when (std_match(rx_addr,TRIGGER_ADDR) and rx_wren='1') else '0';
+    trig_gui_dead_time <= '1' when (std_match(rx_addr,TRIGGER_GUI_DEAD_TIME_ADDR) and rx_wren='1') else '0';
 
     trig_oei_proc: process(oeiclk)
     begin
@@ -449,10 +494,39 @@ begin
         end if;
     end process trig_oei_proc;
 
+    trig_oei_proc_dead_time: process(oeiclk)
+    begin
+        if rising_edge(oeiclk) then
+            trig_gui_dead_time_reg0 <= trig_gui_dead_time;
+            trig_gui_dead_time_reg1 <= trig_gui_dead_time_reg0;
+            trig_gui_dead_time_reg2 <= trig_gui_dead_time_reg1;
+        end if;
+    end process trig_oei_proc_dead_time;
+
+    trig_gbe_total <= trig_gbe0_reg or trig_gbe1_reg or trig_gbe2_reg;
+    trig_gui_dead_time_total <= trig_gui_dead_time_reg0 or trig_gui_dead_time_reg1 or trig_gui_dead_time_reg2;
+
+    -- -- process to acount for dead time during gui reading of spy registers
+    spy_buffer_gui_reading_dead_time: process(trig_gui_dead_time_total)
+    begin
+        if rising_edge(trig_gui_dead_time_total) then
+            trig_internal_enable <= not trig_internal_enable; 
+        end if;
+    end process spy_buffer_gui_reading_dead_time;
+    
+    trigger_internal <= ch_trigger(0) or ch_trigger(1) or ch_trigger(2) or ch_trigger(3) or ch_trigger(4) or
+                        ch_trigger(5) or ch_trigger(6) or ch_trigger(7) or ch_trigger(8) or ch_trigger(9) or
+                        ch_trigger(10) or ch_trigger(11) or ch_trigger(12) or ch_trigger(13) or ch_trigger(14) or
+                        ch_trigger(15) or ch_trigger(16) or ch_trigger(17) or ch_trigger(18) or ch_trigger(19) or
+                        ch_trigger(20) or ch_trigger(21) or ch_trigger(22) or ch_trigger(23) or ch_trigger(24) or
+                        ch_trigger(25) or ch_trigger(26) or ch_trigger(27) or ch_trigger(28) or ch_trigger(29) or
+                        ch_trigger(30) or ch_trigger(31) or ch_trigger(32) or ch_trigger(33) or ch_trigger(34) or
+                        ch_trigger(35) or ch_trigger(36) or ch_trigger(37) or ch_trigger(38) or ch_trigger(39);
+    
     trig_proc: process(mclk) -- note external trigger input is inverted on DAPHNE2
     begin
         if rising_edge(mclk) then
-            trig_sync <= (not trig_ext) or trig_gbe0_reg or trig_gbe1_reg or trig_gbe2_reg; 
+            trig_sync <= trig_gbe_total or (trig_internal_enable and (trigger_internal or (not trig_ext))); 
         end if;
     end process trig_proc;
 
@@ -481,9 +555,74 @@ begin
     gen_a: for a in 4 downto 0 generate
         gen_b: for b in 8 downto 0 generate
             afe_dout_pad(a)(b) <= "00" & afe_dout(a)(b);
+            afe_dout_pad_bits(((a*9 + b)*16 + 15) downto ((a*9 + b)*16)) <= afe_dout_pad(a)(b);
+            afe_dout_filtered(a)(b) <= afe_dout_pad_filtered_bits(((a*9 + b)*16 + 15) downto ((a*9 + b)*16));
         end generate gen_b;
     end generate gen_a;
 
+    -- Filter-trigger modules --------------------------------------------------------
+
+    threshold_config_we <= '1' when (std_match(rx_addr,THRESHOLD_CONFIG_ADDR) and rx_wren='1') else '0';
+    trigger_ch_enable_config_we <= '1' when (std_match(rx_addr,FILTER_TRIGGER_ENABLE_CONFIG_ADDR) and rx_wren='1') else '0';
+    trigger_filter_enable_we <= '1' when (std_match(rx_addr,FILTER_TRIGGER_ENABLE_ADDR) and rx_wren='1') else '0';
+
+    trigger_ch_enable_config_proc: process(oeiclk)
+    begin
+        if rising_edge(oeiclk) then
+            if (trigger_ch_enable_config_we='1') then
+                trigger_module_ch_enable <= rx_data(39 downto 0);
+            end if;
+        end if;
+    end process trigger_ch_enable_config_proc;
+
+    trigger_filter_enable_proc: process(oeiclk)
+    begin
+        if rising_edge(oeiclk) then
+            if (trigger_filter_enable_we='1') then
+                trigger_filter_enable <= rx_data(0);
+                trigger_filter_output_selector_value <= rx_data(2 downto 1);
+            end if;
+        end if;
+    end process trigger_filter_enable_proc;
+
+    threshold_config_proc: process(oeiclk)
+    begin
+        if rising_edge(oeiclk) then
+            if (threshold_config_we='1') then
+                threshold_value <= rx_data(31 downto 0);
+                threshold_ch <= rx_data(39 downto 32);
+                pre_trigger_selector <= rx_data(44 downto 40);
+            end if;
+            threshold_value_read_reg <= threshold_value_read;
+        end if;
+    end process threshold_config_proc;
+
+    threshold_oei_proc: process(oeiclk)
+    begin
+        if rising_edge(oeiclk) then
+            threshold_config_we_reg_0 <= threshold_config_we;
+            threshold_config_we_reg_1 <= threshold_config_we_reg_0;
+            threshold_config_we_reg_2 <= threshold_config_we_reg_1;
+        end if;
+    end process threshold_oei_proc;
+
+    write_threshold_value <= threshold_config_we_reg_0 or threshold_config_we_reg_1 or threshold_config_we_reg_2;
+
+    filter_inst: hpf_pedestal_recovery_filter_trigger
+    port map(
+        clk => mclk,
+        reset => reset_fe_mclk,
+        n_1_reset => '0',
+        enable => trigger_filter_enable,
+        write_threshold_value => write_threshold_value,
+        threshold_ch => threshold_ch,
+        threshold_value => threshold_value,
+        output_selector => trigger_filter_output_selector_value,
+        x => afe_dout_pad_bits,
+        trigger_output => ch_trigger,
+        threshold_value_read => threshold_value_read,
+        y => afe_dout_pad_filtered_bits
+    );
     -- Spy Buffers ------------------------------------------------------------
 
     -- make 45 spy buffers for AFE data, these buffers are READ ONLY
@@ -496,7 +635,8 @@ begin
                 clka  => mclk,
                 reset => reset_async,
                 trig  => trig_sync,
-                dia   => afe_dout_pad(a)(b),
+                dia   => afe_dout_filtered(a)(b),
+                a_in => pre_trigger_selector,
                 -- oeiclk domain    
                 clkb  => oeiclk,
                 addrb => rx_addr(11 downto 0),
@@ -515,7 +655,7 @@ begin
             reset => reset_async,
             trig  => trig_sync,
             dia   => timestamp( ((i*16)+15) downto (i*16) ),
-
+            a_in => pre_trigger_selector,
             -- oeiclk domain    
             clkb  => oeiclk,
             addrb => rx_addr(11 downto 0),
@@ -701,6 +841,13 @@ begin
 
                (X"000000000000" & "000" & mclk_stat_reg) when std_match(rx_addr_reg, MCLK_STAT_ADDR) else
                (X"000000000000" & mclk_ctrl_reg) when std_match(rx_addr_reg, MCLK_CTRL_ADDR) else 
+
+               --------- filter commands ------------
+               (X"0000" & "000" & pre_trigger_selector & threshold_ch & threshold_value) when std_match(rx_addr_reg, THRESHOLD_CONFIG_ADDR) else
+               (X"0000" & "000" & pre_trigger_selector & threshold_ch & threshold_value_read_reg) when std_match(rx_addr_reg, THRESHOLD_READ_ADDR) else
+               (X"000000" & trigger_module_ch_enable) when std_match(rx_addr_reg, FILTER_TRIGGER_ENABLE_CONFIG_ADDR) else
+               (X"000000000000000" & "0" & trigger_filter_output_selector_value & trigger_filter_enable) when std_match(rx_addr_reg, FILTER_TRIGGER_ENABLE_ADDR) else
+               --------------------------------------
 
                (others=>'0');
 

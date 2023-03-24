@@ -5,7 +5,7 @@
 
 # general setup stuff...
 
-set_param general.maxThreads 4
+set_param general.maxThreads 8
 set outputDir ./output
 file mkdir $outputDir
 set_part xc7a200t-fbg676-2
@@ -25,6 +25,10 @@ read_vhdl ../spi/spi.vhd
 read_vhdl ../core/crc20_update.vhd
 read_vhdl ../core/stream/dstr4.vhd
 read_vhdl ../core/core.vhd
+read_verilog ../core/pedestal_recov_filters/hpf_pedestal_recovery_filter_trigger.v
+read_verilog ../core/pedestal_recov_filters/IIRFilter_integrator_optimized.v
+read_verilog ../core/pedestal_recov_filters/IIRFilter_movmean_cfd_trigger.v
+read_verilog ../core/pedestal_recov_filters/n_average_module.v
 
 read_vhdl ../oei/hdl/burst_traffic_controller.vhd
 read_vhdl ../oei/hdl/ethernet_interface.vhd
@@ -132,6 +136,7 @@ report_timing -sort_by group -max_paths 100 -path_type summary -file $outputDir/
 # route...
 
 route_design -directive HigherDelayCost
+# phys_opt_design -directive AggressiveExplore
 # write_checkpoint -force $outputDir/post_route
 
 # generate reports...
@@ -156,6 +161,6 @@ write_bitstream -force $outputDir/daphne2_$git_sha.bit
 # write out ILA debug probes file
 # write_debug_probes -force $outputDir/probes.ltx
 
-exit
+#exit
 
 
