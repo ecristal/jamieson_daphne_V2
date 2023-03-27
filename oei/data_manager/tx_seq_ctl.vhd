@@ -60,7 +60,7 @@ signal tx_data_count: UNSIGNED (10 downto 0);
 -- BINARY ENCODED state machine: Sreg0
 attribute ENUM_ENCODING: string;
 type Sreg0_type is (
-    S7, S1, savecount, read_Ififo, S2, idle, txmtdone, chk_busy, S5, trgrd
+    S7, S1, savecount, read_Ififo, S2, idle, txmtdone, chk_busy, S5, trgrd, wait1clk
 );
 attribute ENUM_ENCODING of Sreg0_type: type is
 	"0000 " &		-- S7
@@ -72,7 +72,8 @@ attribute ENUM_ENCODING of Sreg0_type: type is
 	"0110 " &		-- txmtdone
 	"0111 " &		-- chk_busy
 	"1000 " &		-- S5
-	"1001" ;		-- trgrd
+	"1001"  &		-- trgrd
+	"1010";         -- wait1clk
 
 signal Sreg0: Sreg0_type;
 
@@ -191,19 +192,43 @@ begin
 							Sreg0 <= S5;
 							tx_data <= data_fifo_rd_data_reg(7 downto 0);
 							byte_count <= byte_count + 1;
-							if (byte_count = 2 and qw_count > 1)then
-							-- Read a new data quad word from data fifo with plenty of time to spare
+						    if(qw_count >= 1 and byte_count = 0) then
+						    	-- Read a new data quad word from data fifo with plenty of time to spare
+						    	-- shift next byte into position
 								data_fifo_rden_sig <= '1';
-							end if;
-							if (byte_count = 7) then	--ready for next quadword
-							-- register next quad word from data fifo
-								data_fifo_rd_data_reg <= data_fifo_rd_data;
-							    qw_count <= qw_count - 1;
-							else 	-- on current quadword
-							-- shift next byte into position
-								data_fifo_rd_data_reg <= x"00" & data_fifo_rd_data_reg(63 downto 8);
-							end if;
+							    data_fifo_rd_data_reg <= x"00" & data_fifo_rd_data_reg(63 downto 8);
+						     end if;
+						     if (qw_count >= 1 and byte_count = 1) then
+						        data_fifo_rd_data_reg <= data_fifo_rd_data;
+						        --Sreg0 <= wait1clk;
+						     end if;
+						     if (qw_count >= 1 and byte_count = 2) then
+						        data_fifo_rden_sig <= '1';
+						        data_fifo_rd_data_reg <= x"00" & data_fifo_rd_data_reg(63 downto 8);
+						     end if;
+						     if (qw_count >= 1 and byte_count = 3) then
+						        data_fifo_rd_data_reg <= data_fifo_rd_data;
+						        --Sreg0 <= wait1clk;
+						     end if;
+						     if (qw_count >= 1 and byte_count = 4) then
+						        data_fifo_rd_data_reg <= x"00" & data_fifo_rd_data_reg(63 downto 8);
+						     end if;
+						     if (qw_count >= 1 and byte_count = 5) then
+						        data_fifo_rd_data_reg <= data_fifo_rd_data;
+						        --Sreg0 <= wait1clk;
+						     end if;
+						     if (qw_count >= 1 and byte_count = 6) then
+						        data_fifo_rden_sig <= '1';
+						        data_fifo_rd_data_reg <= x"00" & data_fifo_rd_data_reg(63 downto 8);
+						     end if;
+						     if (qw_count >= 1 and byte_count = 7) then
+						        data_fifo_rd_data_reg <= data_fifo_rd_data;
+						        --Sreg0 <= wait1clk;
+						        qw_count <= qw_count - 1;
+						     end if;
 						end if;
+					when wait1clk =>
+						Sreg0 <= S5;
 					when trgrd =>
 						if user_tx_enable_out = '1' then
 							Sreg0 <= S5;
