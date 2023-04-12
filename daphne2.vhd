@@ -506,7 +506,8 @@ begin
     trig_gbe_total <= trig_gbe0_reg or trig_gbe1_reg or trig_gbe2_reg;
     trig_gui_dead_time_total <= trig_gui_dead_time_reg0 or trig_gui_dead_time_reg1 or trig_gui_dead_time_reg2;
 
-    -- -- process to acount for dead time during gui reading of spy registers
+    -- process to acount for dead time during gui reading of spy registers
+    -- is this equivalent to a JK-FLIPFLOP?
     spy_buffer_gui_reading_dead_time: process(trig_gui_dead_time_total)
     begin
         if rising_edge(trig_gui_dead_time_total) then

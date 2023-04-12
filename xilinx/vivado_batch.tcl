@@ -29,6 +29,7 @@ read_verilog ../core/pedestal_recov_filters/hpf_pedestal_recovery_filter_trigger
 read_verilog ../core/pedestal_recov_filters/IIRFilter_integrator_optimized.v
 read_verilog ../core/pedestal_recov_filters/IIRFilter_movmean_cfd_trigger.v
 read_verilog ../core/pedestal_recov_filters/n_average_module.v
+read_verilog ../core/pedestal_recov_filters/k_low_pass_filter.v
 
 read_vhdl ../oei/hdl/burst_traffic_controller.vhd
 read_vhdl ../oei/hdl/ethernet_interface.vhd

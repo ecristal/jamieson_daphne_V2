@@ -31,7 +31,7 @@ module hpf_pedestal_recovery_filter_trigger(
 	wire signed [15:0] x_i [4:0][7:0];
     //wire signed [15:0] w_resta_out [4:0][7:0];
     wire signed [15:0] w_out [4:0][7:0];
-	wire signed [15:0] resta_out [4:0][7:0];
+	//wire signed [15:0] resta_out [4:0][7:0];
 	wire signed [15:0] suma_out [4:0][7:0];
 
     reg signed [31:0] threshold_levels [39:0];
@@ -91,7 +91,7 @@ module hpf_pedestal_recovery_filter_trigger(
 		    assign y[((i*9 + 8)*16 + 15) : ((i*9 + 8)*16)] = x[((i*9 + 8)*16 + 15) : ((i*9 + 8)*16)]; // (i*9 + j)*16
             for(j=0; j<=7; j=j+1) begin : j_instance
 //                if(i == 2 && j == 0) begin // comment to have 40 channels
-                n_average_module lpf(
+                k_low_pass_filter lpf(
                     .clk(clk),
                     .reset(reset),
                     .enable(enable),
@@ -104,8 +104,8 @@ module hpf_pedestal_recovery_filter_trigger(
                     .reset(reset),
                     .n_1_reset(n_1_reset),
                     .enable(enable),
-                    .x(resta_out[i][j]),
-                    //.x(x_i[i][j]),
+                    //.x(resta_out[i][j]),
+                    .x(x_i[i][j]),
                     .y(hpf_out[i][j])
                 );
 
@@ -130,9 +130,9 @@ module hpf_pedestal_recovery_filter_trigger(
                     end
                 end*/
 
-                assign resta_out[i][j] = (enable==0) ?   x_i[i][j] : 
+                /*assign resta_out[i][j] = (enable==0) ?   x_i[i][j] : 
                                          (enable==1) ?   (x_i[i][j] - lpf_out[i][j]) : 
-                                         16'bx;
+                                         16'bx;*/ // This part is not necessary given that there it will be removed by the HPF
                 
                 assign suma_out[i][j] = (enable==0) ?   hpf_out[i][j] : 
                                         (enable==1) ?   (hpf_out[i][j] + lpf_out[i][j]) : 
