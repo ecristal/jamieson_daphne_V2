@@ -33,6 +33,7 @@ module hpf_pedestal_recovery_filter_trigger(
     wire signed [15:0] w_out [4:0][7:0];
 	//wire signed [15:0] resta_out [4:0][7:0];
 	wire signed [15:0] suma_out [4:0][7:0];
+    wire tm_output_selector;
 
     reg signed [31:0] threshold_levels [39:0];
     reg signed [31:0] threshold_value_read_reg;
@@ -99,21 +100,22 @@ module hpf_pedestal_recovery_filter_trigger(
                     .y(lpf_out[i][j])
                 );
 
-                IIRFilter_integrator_optimized hpf(
+                n4_order_k_high_pass_filter hpf(
                     .clk(clk),
                     .reset(reset),
-                    .n_1_reset(n_1_reset),
+                    //.n_1_reset(n_1_reset),
                     .enable(enable),
                     //.x(resta_out[i][j]),
                     .x(x_i[i][j]),
                     .y(hpf_out[i][j])
                 );
 
-                IIRFilter_movmean_cfd_trigger filter_trigger(
+                mi_trigger_module filter_trigger(
                     .clk(clk),
                     .reset(reset),
-                    .n_1_reset(n_1_reset),
+                    //.n_1_reset(n_1_reset),
                     .enable(enable),
+                    .output_selector(tm_output_selector),
                     .threshold(threshold_levels[i*8 + j]),
                     .x(hpf_out[i][j]),
                     .trigger(trigger_output[i*8 + j]),
@@ -138,9 +140,10 @@ module hpf_pedestal_recovery_filter_trigger(
                                         (enable==1) ?   (hpf_out[i][j] + lpf_out[i][j]) : 
                                          16'bx;
 
+
                 assign w_out[i][j] =    (output_selector == 2'b00) ?   suma_out[i][j] : 
-                                        (output_selector == 2'b01) ?   movmean_out[i][j] : 
-                                        (output_selector == 2'b10) ?   hpf_out[i][j] :
+                                        (output_selector == 2'b01) ?   lpf_out[i][j] + movmean_out[i][j] : //movmean
+                                        (output_selector == 2'b10) ?   lpf_out[i][j] + movmean_out[i][j] : //movmean cfd
                                         (output_selector == 2'b11) ?   x_i[i][j] :
                                          16'bx;
                
@@ -160,5 +163,10 @@ module hpf_pedestal_recovery_filter_trigger(
 	endgenerate
 	
     assign threshold_value_read = threshold_value_read_reg;
+    assign tm_output_selector = (output_selector == 2'b00) ?   1'b0 : 
+                                (output_selector == 2'b01) ?   1'b0 : //movmean
+                                (output_selector == 2'b10) ?   1'b1 : //movmean cfd
+                                (output_selector == 2'b11) ?   1'b0 :
+                                 1'bx;
 
 endmodule

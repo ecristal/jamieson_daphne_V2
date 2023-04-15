@@ -5,7 +5,7 @@
 
 # general setup stuff...
 
-set_param general.maxThreads 8
+set_param general.maxThreads 6
 set outputDir ./output
 file mkdir $outputDir
 set_part xc7a200t-fbg676-2
@@ -30,6 +30,11 @@ read_verilog ../core/pedestal_recov_filters/IIRFilter_integrator_optimized.v
 read_verilog ../core/pedestal_recov_filters/IIRFilter_movmean_cfd_trigger.v
 read_verilog ../core/pedestal_recov_filters/n_average_module.v
 read_verilog ../core/pedestal_recov_filters/k_low_pass_filter.v
+read_verilog ../core/pedestal_recov_filters/k_high_pass_filter.v
+read_verilog ../core/pedestal_recov_filters/n4_order_k_high_pass_filter.v
+read_verilog ../core/pedestal_recov_filters/moving_integrator_filter.v
+read_verilog ../core/pedestal_recov_filters/constant_fraction_discriminator.v
+read_verilog ../core/pedestal_recov_filters/mi_trigger_module.v
 
 read_vhdl ../oei/hdl/burst_traffic_controller.vhd
 read_vhdl ../oei/hdl/ethernet_interface.vhd

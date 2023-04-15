@@ -5,12 +5,12 @@
 //
 // Create Date: July 1, 2022, 5:51:46 PM
 // Design Name: filtering_and_selftrigger
-// Module Name: k_low_pass_filter.v
+// Module Name: moving_integrator_filter.v
 // Project Name: selftrigger@bicocca
 // Target Devices: DAPHNE V2
 //
 //////////////////////////////////////////////////////////////////////////////////
-module k_low_pass_filter(
+module moving_integrator_filter(
 	input wire clk,
 	input wire reset, 
 	input wire enable, 
@@ -18,14 +18,14 @@ module k_low_pass_filter(
     output wire signed [15:0] y
 );
     
-    parameter k = 26;
-    parameter hist = 20;
+	parameter k = 25;
     
     reg reset_reg, enable_reg;
-    reg signed [15:0] in_reg, out_reg, diff;
-	reg signed [47:0] x_1, y_1;
+    reg signed [15:0] in_reg;
+	reg signed [15:0] y_1;
 
-	wire signed [47:0] w1, w2, w3, w4, w5, w6, w7;
+	wire signed [15:0] w1, w2;
+
 
 	always @(posedge clk) begin 
 		if(reset) begin
@@ -42,29 +42,32 @@ module k_low_pass_filter(
 
 	always @(posedge clk) begin
 		if(reset_reg) begin
-			x_1 <= 0;
 			y_1 <= 0;
 			in_reg <= 0;
-			out_reg <= 0;
-			diff <= 0;
 		end else if(enable_reg) begin
-			x_1 <= w1;
-			y_1 <= w6;
+			y_1 <= w1;
 			in_reg <= x;
-            diff <= out_reg - w6[47:32];
-			if(hist <= $unsigned(diff)) begin
-				out_reg <= w6[47:32];
-			end 
 		end
 	end
 
-	assign w1 = {in_reg,32'b0};
-	assign w2 = x_1;
-	assign w3 = w1 + w2;
-	assign w4 = w3 >> k;
-	assign w5 = y_1;
-	assign w6 = w4 + w5 - w7;
-	assign w7 = w5 >> (k-1);
-	assign y = out_reg;
+	generate genvar i;
+		for(i=0; i<=15; i=i+1) begin : srlc32e_i_inst
+				SRLC32E #(
+				   .INIT(32'h00000000),    // Initial contents of shift register
+				   .IS_CLK_INVERTED(1'b0)  // Optional inversion for CLK
+					) 
+					SRLC32E_inst (
+				   .Q(w2[i]),     // 1-bit output: SRL Data
+				   .Q31(), // 1-bit output: SRL Cascade Data
+				   .A(k),     // 5-bit input: Selects SRL depth
+				   .CE(enable_reg),   // 1-bit input: Clock enable
+				   .CLK(clk), // 1-bit input: Clock
+				   .D(in_reg[i])      // 1-bit input: SRL Data
+				);
+		end
+	endgenerate
+
+	assign w1 = in_reg + y_1 - w2;
+    assign y = w1;
 
 endmodule
