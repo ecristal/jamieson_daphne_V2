@@ -105,8 +105,8 @@ module hpf_pedestal_recovery_filter_trigger(
                     .reset(reset),
                     .n_1_reset(n_1_reset),
                     .enable(enable),
-                    .x(resta_out[i][j]),
-                    //.x(x_i[i][j]),
+                    //.x(resta_out[i][j]),
+                    .x(x_i[i][j]),
                     .y(hpf_out[i][j])
                 );
 
@@ -132,9 +132,9 @@ module hpf_pedestal_recovery_filter_trigger(
                     end
                 end*/
 
-                assign resta_out[i][j] = (enable==0) ?   x_i[i][j] : 
-                                         (enable==1) ?   (x_i[i][j] - lpf_out[i][j]) : 
-                                         16'bx; // This part is not necessary given that there it will be removed by the HPF
+ //               assign resta_out[i][j] = (enable==0) ?   x_i[i][j] : 
+ //                                        (enable==1) ?   (x_i[i][j] - lpf_out[i][j]) : 
+ //                                        16'bx; // This part is not necessary given that there it will be removed by the HPF
                 
                 assign suma_out[i][j] = (enable==0) ?   hpf_out[i][j] : 
                                         (enable==1) ?   (hpf_out[i][j] + lpf_out[i][j]) : 

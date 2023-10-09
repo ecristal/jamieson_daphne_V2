@@ -27,9 +27,13 @@ module constant_fraction_discriminator(
 
     reg signed [15:0] in_reg;
     reg signed [15:0] y_1, y_2;
+    reg signed [47:0] in_mult;
     reg [7:0] counter_threshold;
 
 	wire signed [15:0] w1;
+
+	wire signed [24:0] mult1;
+	wire signed [17:0] mult2;
 
 	always @(posedge clk) begin 
 		if(reset) begin
@@ -49,7 +53,8 @@ module constant_fraction_discriminator(
 			in_reg <= 0;
 		end else if(enable_reg) begin
 			in_reg <= x;
-			y_1 <= in_reg - w1;
+            in_mult <= mult1*mult2;
+			y_1 <= in_mult[41:26] - w1;
 			y_2 <= y_1;
 			trigger_reg <= (trigger_threshold && trigger_crossover);
 		end
@@ -110,6 +115,8 @@ module constant_fraction_discriminator(
     // ignored during 'store' state.
 
     assign y = y_1;
+    assign mult1 = {in_reg,9'b0};
+    assign mult2 = 18'b010011001100110011;
     assign trigger = trigger_reg;
 
 endmodule

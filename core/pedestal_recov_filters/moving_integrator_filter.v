@@ -49,7 +49,7 @@ module moving_integrator_filter(
 			in_reg <= 0;
 		end else if(enable_reg) begin
 			wm <= mult1*mult2;
-			y_1 <= wm[41:26];
+			y_1 <= w1;
 			in_reg <= x;
 		end
 	end
