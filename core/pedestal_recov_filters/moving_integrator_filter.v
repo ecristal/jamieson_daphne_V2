@@ -23,8 +23,11 @@ module moving_integrator_filter(
     reg reset_reg, enable_reg;
     reg signed [15:0] in_reg;
 	reg signed [15:0] y_1;
+	reg signed [47:0] wm;
 
 	wire signed [15:0] w1, w2;
+	wire signed [24:0] mult1;
+	wire signed [17:0] mult2;
 
 
 	always @(posedge clk) begin 
@@ -45,7 +48,8 @@ module moving_integrator_filter(
 			y_1 <= 0;
 			in_reg <= 0;
 		end else if(enable_reg) begin
-			y_1 <= w1;
+			wm <= mult1*mult2;
+			y_1 <= wm[41:26];
 			in_reg <= x;
 		end
 	end
@@ -68,6 +72,8 @@ module moving_integrator_filter(
 	endgenerate
 
 	assign w1 = in_reg + y_1 - w2;
-    assign y = w1;
+	assign mult1 = {w1,9'b0};
+	assign mult2 = 18'b000010100011110110;
+    assign y = wm[41:26];
 
 endmodule

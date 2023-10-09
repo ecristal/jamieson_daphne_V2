@@ -89,7 +89,7 @@ module constant_fraction_discriminator(
 	always @(posedge clk) begin
 	    if (reset_reg || counter_threshold[7]) begin
 	        counter_threshold <= 8'b0;
-		end else if(enable_reg && trigger_threshold) begin
+		end else if(enable_reg && trigger_crossover) begin
 			counter_threshold <= counter_threshold + 1'b1;
 		end
 	end

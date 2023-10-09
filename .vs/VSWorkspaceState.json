@@ -1,0 +1,9 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\core",
+    "\\core\\pedestal_recov_filters"
+  ],
+  "SelectedNode": "\\core\\pedestal_recov_filters\\IIRFilter_integrator_optimized.v",
+  "PreviewInSolutionExplorer": false
+}

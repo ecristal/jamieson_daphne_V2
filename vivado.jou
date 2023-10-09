@@ -1,0 +1,14 @@
+#-----------------------------------------------------------
+# Vivado v2022.1 (64-bit)
+# SW Build 3526262 on Mon Apr 18 15:48:16 MDT 2022
+# IP Build 3524634 on Mon Apr 18 20:55:01 MDT 2022
+# Start of session at: Wed Apr 12 11:28:32 2023
+# Process ID: 8464
+# Current directory: C:/Users/e_cri/OneDrive/Documents/PhD/Investigacion/DAPHNE/V2A/gateware/DAPHNE2
+# Command line: vivado.exe
+# Log file: C:/Users/e_cri/OneDrive/Documents/PhD/Investigacion/DAPHNE/V2A/gateware/DAPHNE2/vivado.log
+# Journal file: C:/Users/e_cri/OneDrive/Documents/PhD/Investigacion/DAPHNE/V2A/gateware/DAPHNE2\vivado.jou
+# Running On: DESKTOP-LKH6SF3, OS: Windows, CPU Frequency: 2803 MHz, CPU Physical cores: 4, Host memory: 16885 MB
+#-----------------------------------------------------------
+start_gui
+source C:/Users/e_cri/OneDrive/Documents/PhD/Investigacion/DAPHNE/V2A/gateware/DAPHNE2/xilinx/vivado_batch.tcl
