@@ -110,11 +110,7 @@ module filtroIIR_movmean25_cfd #(parameter shift_delay = 15, threshold_divide = 
             y_delay_reg <= 2*16'b0;
             y_shifted <= shift_delay*16'b0;
             trigger_reg <= 1'b0;
-            threshold_reg <= threshold;
-            threshold_signal <= 1'b0;
-            counter_threshold_mod <= 16'b0;
             y_overshoot <= 16'b0;
-            threshold_ride <= 16'b0;
 		end else if(enable_reg) begin
 			en_mux <= w11[39:24] + $signed(4);
             y_overshoot <= -$signed(en_mux >>> threshold_divide);
@@ -167,27 +163,31 @@ module filtroIIR_movmean25_cfd #(parameter shift_delay = 15, threshold_divide = 
 		end
 	end
 
-	always @(posedge clk, posedge trigger_reg) begin
-        if((y_overshoot > threshold_reg) && ~threshold_signal && trigger_reg) begin
+	always @(posedge clk) begin
+		if(reset_reg || (counter_threshold_mod > $signed(4000))) begin    
+            threshold_ride <= 16'b0;
+            threshold_signal <= 1'b0;
+        end else if((y_overshoot > threshold_reg) && ~threshold_signal && trigger_reg) begin
             threshold_ride <= y_overshoot;
             threshold_signal <= 1'b1;
         end 
     end
 
-    always @(posedge clk, posedge trigger_reg) begin
-        if(threshold_signal) begin
+    always @(posedge clk) begin
+    	if (reset_reg || ~threshold_signal) begin
+    		threshold_reg <= threshold;
+        end else if(threshold_signal) begin
             threshold_reg <= -$signed(y_shifted[(5*16-1) : (5*16-1) - 15 ]) + threshold_ride;
         end 
     end
 
    always @(posedge clk) begin
-        if(threshold_signal && (counter_threshold_mod < $signed(4000))) begin
+   	    if(reset_reg) begin
+            counter_threshold_mod <= 16'b0;
+        end else if(threshold_signal && (counter_threshold_mod < $signed(4000))) begin
             counter_threshold_mod <= counter_threshold_mod + 1'b1;
         end else if(threshold_signal && (counter_threshold_mod > $signed(4000))) begin
             counter_threshold_mod <= 16'b0;
-            threshold_signal <= 1'b0;
-        end else begin
-            threshold_reg <= threshold;
         end
     end
 
