@@ -110,10 +110,10 @@ module hpf_pedestal_recovery_filter_trigger(
                     .y(hpf_out[i][j])
                 );
 
-                mi_trigger_module filter_trigger(
+                mi_trigger_module filtroIIR_movmean25_cfd(
                     .clk(clk),
                     .reset(reset),
-                    //.n_1_reset(n_1_reset),
+                    .n_1_reset(n_1_reset),
                     .enable(enable),
                     .output_selector(tm_output_selector),
                     .threshold(threshold_levels[i*8 + j]),

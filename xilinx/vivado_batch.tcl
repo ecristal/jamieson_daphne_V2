@@ -35,6 +35,7 @@ read_verilog ../core/pedestal_recov_filters/n4_order_k_high_pass_filter.v
 read_verilog ../core/pedestal_recov_filters/moving_integrator_filter.v
 read_verilog ../core/pedestal_recov_filters/constant_fraction_discriminator.v
 read_verilog ../core/pedestal_recov_filters/mi_trigger_module.v
+read_verilog ../core/pedestal_recov_filters/filtroIIR_movmean25_cfd.v
 
 read_vhdl ../oei/hdl/burst_traffic_controller.vhd
 read_vhdl ../oei/hdl/ethernet_interface.vhd
