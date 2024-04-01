@@ -31,7 +31,7 @@ module hpf_pedestal_recovery_filter_trigger(
 	wire signed [15:0] x_i [4:0][7:0];
     //wire signed [15:0] w_resta_out [4:0][7:0];
     wire signed [15:0] w_out [4:0][7:0];
-	//wire signed [15:0] resta_out [4:0][7:0];
+	wire signed [15:0] resta_out [4:0][7:0];
 	wire signed [15:0] suma_out [4:0][7:0];
     wire tm_output_selector;
 
