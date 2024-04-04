@@ -52,9 +52,9 @@ module k_low_pass_filter(
 			y_1 <= w6;
 			in_reg <= x;
             diff <= out_reg - w6[47:32];
-			if(hist <= $unsigned(diff)) begin
-				out_reg <= w6[47:32];
-			end 
+			//if(hist <= $unsigned(diff)) begin
+			out_reg <= w6[47:32];
+			//end 
 		end
 	end
 
