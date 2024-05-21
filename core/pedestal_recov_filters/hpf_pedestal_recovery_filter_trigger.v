@@ -134,7 +134,7 @@ module hpf_pedestal_recovery_filter_trigger(
 
                 assign resta_out[i][j] = (enable==0) ?   x_i[i][j] : 
                                          (enable==1) ?   (x_i[i][j] - lpf_out[i][j]) : 
-                                         16'bx; // This part is not necessary given that there it will be removed by the HPF
+                                         16'bx; 
                 
                 assign suma_out[i][j] = (enable==0) ?   hpf_out[i][j] : 
                                         (enable==1) ?   (hpf_out[i][j] + lpf_out[i][j]) : 
@@ -163,10 +163,10 @@ module hpf_pedestal_recovery_filter_trigger(
 	endgenerate
 	
     assign threshold_value_read = threshold_value_read_reg;
-    assign tm_output_selector = (output_selector == 2'b00) ?   1'b0 : 
+    assign tm_output_selector = (output_selector == 2'b00) ?   1'b0 : //hpf 
                                 (output_selector == 2'b01) ?   1'b0 : //movmean
                                 (output_selector == 2'b10) ?   1'b1 : //movmean cfd
-                                (output_selector == 2'b11) ?   1'b0 :
+                                (output_selector == 2'b11) ?   1'b0 : //unfiltered
                                  1'bx;
 
 endmodule

@@ -4,18 +4,12 @@
 // Engineer: Esteban Cristaldo
 //
 // Create Date: 07/05/2022 02:54:52 PM
-// Design Name:
-// Module Name: filtroIIR_integrator
+// Design Name: filtering_and_selftrigger
+// Module Name: IIRfilter_movmean25_cfd_trigger
 // Project Name:
 // Target Devices:
 // Tool Versions:
 // Description:
-//
-// Dependencies:
-//
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
 //
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -51,7 +45,7 @@ module filtroIIR_movmean25_cfd #(parameter shift_delay = 15, threshold_divide = 
   	reg signed [2*16 - 1 : 0] y_delay_reg;
   	reg signed [shift_delay*16 -1 : 0] y_shifted;
   	reg trigger_threshold, trigger_crossover, trigger_reg, threshold_signal;
-  	reg [7:0] counter_crossover, counter_threshold;
+  	reg [11:0] counter_crossover, counter_threshold;
 	reg reset_reg, enable_reg;
 	reg signed [31:0] threshold_reg;
 
@@ -84,11 +78,12 @@ module filtroIIR_movmean25_cfd #(parameter shift_delay = 15, threshold_divide = 
 		d2 <= {3'b111,15'b001011000000111 + 1'b1}; // 1101001111110000
 		// ********** HPK ************ //
 
-	  x_i <= 16'b0;
-      x_1 <= 25'b0;
-      x_2 <= 25'b0;
-			y_1 <= 25'b0;
-			y_2 <= 25'b0;
+	    x_i <= 16'b0;
+        x_1 <= 25'b0;
+        x_2 <= 25'b0;
+	    y_1 <= 25'b0;
+	    y_2 <= 25'b0;
+	    
 		end else if (n_1_reset) begin
 		  x_i <= 16'b0;
 			x_1 <= 25'b0;
@@ -101,6 +96,7 @@ module filtroIIR_movmean25_cfd #(parameter shift_delay = 15, threshold_divide = 
 			x_2 <= w4;
 			y_1 <= w12;
 			y_2 <= w13;
+			threshold_reg <= threshold;
 		end
 	end
 
@@ -124,22 +120,24 @@ module filtroIIR_movmean25_cfd #(parameter shift_delay = 15, threshold_divide = 
 		end
 	end
 
+	// modulo trigger normal 
+
 	always @(posedge clk) begin
-	    if (reset_reg || counter_crossover[7]) begin
+	    if (reset_reg || counter_crossover[11] || counter_threshold[11]) begin
 			trigger_threshold <= 1'b0;
 		end else if(enable_reg) begin
 			if (($signed(en_mux) < -($signed(threshold_reg))) || trigger_threshold) begin
 			     trigger_threshold <= 1'b1;
 			end
-			/*if(counter_crossover[7]) begin
+			/*if(counter_crossover[11]) begin
 			      trigger_threshold <= 1'b0;
 			end*/
 		end
 	end
 
 	always @(posedge clk) begin
-	    if (reset_reg || counter_crossover[7]) begin
-	        counter_crossover <= 8'b0;
+	    if (reset_reg || counter_crossover[11]) begin
+	        counter_crossover <= 12'b0;
 		end else if(enable_reg && trigger_crossover) begin
 			counter_crossover <= counter_crossover + 1'b1;
 		end
@@ -147,49 +145,53 @@ module filtroIIR_movmean25_cfd #(parameter shift_delay = 15, threshold_divide = 
 
 	always @(posedge clk) begin
 	    if (reset_reg || ~trigger_threshold) begin
-	        counter_threshold <= 8'b0;
+	        counter_threshold <= 12'b0;
 		end else if(enable_reg && trigger_threshold) begin
 			counter_threshold <= counter_threshold + 1'b1;
 		end
 	end
 
 	always @(posedge clk) begin
-	    if (reset_reg || counter_crossover[7]) begin
+	    if (reset_reg || counter_crossover[11]) begin
 	        trigger_crossover <= 1'b0;
-		end else if(enable_reg && trigger_threshold && (counter_threshold >= $signed(4))) begin
+		end else if(enable_reg && trigger_threshold && (counter_threshold >= 4)) begin
 			if (($signed(y_delay_reg[15:0]) >= $signed(16'd0)) && ($signed(y_delay_reg[31:16]) < $signed(16'd0))) begin
 			     trigger_crossover <= 1'b1;
 			end
 		end
 	end
 
-	always @(posedge clk) begin
-		if(reset_reg || (counter_threshold_mod > $signed(4000))) begin    
-            threshold_ride <= 16'b0;
-            threshold_signal <= 1'b0;
-        end else if((y_overshoot > threshold_reg) && ~threshold_signal && trigger_reg) begin
-            threshold_ride <= y_overshoot;
-            threshold_signal <= 1'b1;
-        end 
-    end
+	/// A partir de aqui es experimental 
 
-    always @(posedge clk) begin
-    	if (reset_reg || ~threshold_signal) begin
-    		threshold_reg <= threshold;
-        end else if(threshold_signal) begin
-            threshold_reg <= -$signed(y_shifted[(5*16-1) : (5*16-1) - 15 ]) + threshold_ride;
-        end 
-    end
+	//always @(posedge clk) begin
+	//	if(reset_reg || (counter_threshold_mod >= 4000)) begin    
+    //        threshold_ride <= 16'b0;
+    //        threshold_signal <= 1'b0;
+    //    end else if((y_overshoot > threshold_reg) && ~threshold_signal && trigger_reg) begin
+    //        threshold_ride <= y_overshoot;
+    //        threshold_signal <= 1'b1;
+    //    end 
+    //end
 
-   always @(posedge clk) begin
-   	    if(reset_reg) begin
-            counter_threshold_mod <= 16'b0;
-        end else if(threshold_signal && (counter_threshold_mod < $signed(4000))) begin
-            counter_threshold_mod <= counter_threshold_mod + 1'b1;
-        end else if(threshold_signal && (counter_threshold_mod > $signed(4000))) begin
-            counter_threshold_mod <= 16'b0;
-        end
-    end
+    //always @(posedge clk) begin
+    //	if (reset_reg || ~threshold_signal) begin
+    //		threshold_reg <= threshold;
+    //    end else if(threshold_signal) begin
+    //        threshold_reg <= -$signed(y_shifted[(5*16-1) : (5*16-1) - 15 ]) + threshold_ride;
+    //   end 
+    //end
+
+    //always @(posedge clk) begin
+   	//    if(reset_reg) begin
+    //        counter_threshold_mod <= 16'b0;
+    //     end else if(threshold_signal && (counter_threshold_mod < 4000)) begin
+    //        counter_threshold_mod <= counter_threshold_mod + 1'b1;
+    //    end else if(threshold_signal && (counter_threshold_mod >= 4000)) begin
+    //        counter_threshold_mod <= 16'b0;
+    //    end
+    // end
+
+    /// End experimental 
 
   assign w1 = {x_i,9'b0};
   //assign w1 = {1'b0,x_i[13:0],10'b0};

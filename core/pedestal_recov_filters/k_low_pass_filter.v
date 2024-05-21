@@ -23,6 +23,7 @@ module k_low_pass_filter(
     
     reg reset_reg, enable_reg;
     reg signed [15:0] in_reg, out_reg, diff;
+    //reg signed [15:0] diff;
 	reg signed [47:0] x_1, y_1;
 
 	wire signed [47:0] w1, w2, w3, w4, w5, w6, w7;
@@ -46,12 +47,12 @@ module k_low_pass_filter(
 			y_1 <= 0;
 			in_reg <= 0;
 			out_reg <= 0;
-			diff <= 0;
+			//diff <= 0;
 		end else if(enable_reg) begin
 			x_1 <= w1;
 			y_1 <= w6;
 			in_reg <= x;
-            diff <= out_reg - w6[47:32];
+            //diff <= out_reg - w6[47:32];
 			//if(hist <= $unsigned(diff)) begin
 			out_reg <= w6[47:32];
 			//end 
