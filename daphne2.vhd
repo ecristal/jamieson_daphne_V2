@@ -515,14 +515,15 @@ begin
         end if;
     end process spy_buffer_gui_reading_dead_time;
     
-    trigger_internal <= ch_trigger(0) or ch_trigger(1) or ch_trigger(2) or ch_trigger(3) or ch_trigger(4) or
-                        ch_trigger(5) or ch_trigger(6) or ch_trigger(7) or ch_trigger(8) or ch_trigger(9) or
-                        ch_trigger(10) or ch_trigger(11) or ch_trigger(12) or ch_trigger(13) or ch_trigger(14) or
-                        ch_trigger(15) or ch_trigger(16) or ch_trigger(17) or ch_trigger(18) or ch_trigger(19) or
-                        ch_trigger(20) or ch_trigger(21) or ch_trigger(22) or ch_trigger(23) or ch_trigger(24) or
-                        ch_trigger(25) or ch_trigger(26) or ch_trigger(27) or ch_trigger(28) or ch_trigger(29) or
-                        ch_trigger(30) or ch_trigger(31) or ch_trigger(32) or ch_trigger(33) or ch_trigger(34) or
-                        ch_trigger(35) or ch_trigger(36) or ch_trigger(37) or ch_trigger(38) or ch_trigger(39);
+    trigger_internal <= '0';
+    --trigger_internal <= ch_trigger(0) or ch_trigger(1) or ch_trigger(2) or ch_trigger(3) or ch_trigger(4) or
+    --                    ch_trigger(5) or ch_trigger(6) or ch_trigger(7) or ch_trigger(8) or ch_trigger(9) or
+    --                    ch_trigger(10) or ch_trigger(11) or ch_trigger(12) or ch_trigger(13) or ch_trigger(14) or
+    --                    ch_trigger(15) or ch_trigger(16) or ch_trigger(17) or ch_trigger(18) or ch_trigger(19) or
+    --                    ch_trigger(20) or ch_trigger(21) or ch_trigger(22) or ch_trigger(23) or ch_trigger(24) or
+    --                    ch_trigger(25) or ch_trigger(26) or ch_trigger(27) or ch_trigger(28) or ch_trigger(29) or
+    --                    ch_trigger(30) or ch_trigger(31) or ch_trigger(32) or ch_trigger(33) or ch_trigger(34) or
+    --                    ch_trigger(35) or ch_trigger(36) or ch_trigger(37) or ch_trigger(38) or ch_trigger(39);
     
     trig_proc: process(mclk) -- note external trigger input is inverted on DAPHNE2
     begin
