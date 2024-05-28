@@ -155,7 +155,7 @@ module hpf_pedestal_recovery_filter_trigger(
                 assign y[((i*9 + j)*16 + 15) : ((i*9 + j)*16)] = w_out[i][j];
                 //assign w_resta_out[i][j] = resta_out[i][j];
                 end else if(i == 0 && j == 2) begin
-                    y[((i*9 + j)*16 + 15) : ((i*9 + j)*16)] = {15'b0,trigger_output[i*8 + j - 1]};
+                    assign y[((i*9 + j)*16 + 15) : ((i*9 + j)*16)] = {15'b0,trigger_output[i*8 + j - 1]};
                 end else begin // comment to have 40 channels
                     assign y[((i*9 + j)*16 + 15) : ((i*9 + j)*16)] = x[((i*9 + j)*16 + 15) : ((i*9 + j)*16)];
                 end
