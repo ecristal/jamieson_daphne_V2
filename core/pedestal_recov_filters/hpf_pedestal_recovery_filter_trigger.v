@@ -91,7 +91,7 @@ module hpf_pedestal_recovery_filter_trigger(
 		for(i=0; i<=4; i=i+1) begin : i_instance
 		    assign y[((i*9 + 8)*16 + 15) : ((i*9 + 8)*16)] = x[((i*9 + 8)*16 + 15) : ((i*9 + 8)*16)]; // (i*9 + j)*16
             for(j=0; j<=7; j=j+1) begin : j_instance
-//                if(i == 2 && j == 0) begin // comment to have 40 channels
+              if(i == 0 && j == 1) begin // comment to have 40 channels
                 k_low_pass_filter lpf(
                     .clk(clk),
                     .reset(reset),
@@ -154,9 +154,11 @@ module hpf_pedestal_recovery_filter_trigger(
                 assign x_i[i][j] = x[((i*9 + j)*16 + 15) : ((i*9 + j)*16)];
                 assign y[((i*9 + j)*16 + 15) : ((i*9 + j)*16)] = w_out[i][j];
                 //assign w_resta_out[i][j] = resta_out[i][j];
- //               end else begin // comment to have 40 channels
- //                   assign y[((i*9 + j)*16 + 15) : ((i*9 + j)*16)] = x[((i*9 + j)*16 + 15) : ((i*9 + j)*16)];
- //               end
+                end else if(i == 0 && j == 2) begin
+                    y[((i*9 + j)*16 + 15) : ((i*9 + j)*16)] = {15'b0,trigger_output[i*8 + j - 1]};
+                end else begin // comment to have 40 channels
+                    assign y[((i*9 + j)*16 + 15) : ((i*9 + j)*16)] = x[((i*9 + j)*16 + 15) : ((i*9 + j)*16)];
+                end
             end
 		end
 		
