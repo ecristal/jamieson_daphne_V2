@@ -38,6 +38,10 @@ module hpf_pedestal_recovery_filter_trigger(
     reg signed [31:0] threshold_levels [39:0];
     reg signed [31:0] threshold_value_read_reg;
 
+    (* dont_touch = "true" *) wire [13:0] baseline_wire;
+    (* dont_touch = "true" *) wire [13:0] trigsample_wire;
+    wire [47:0] threshold_wire;
+
     always @(posedge clk) begin 
         if(reset) begin
            threshold_levels[0] <= $signed(99999);
@@ -92,34 +96,44 @@ module hpf_pedestal_recovery_filter_trigger(
 		    assign y[((i*9 + 8)*16 + 15) : ((i*9 + 8)*16)] = x[((i*9 + 8)*16 + 15) : ((i*9 + 8)*16)]; // (i*9 + j)*16
             for(j=0; j<=7; j=j+1) begin : j_instance
               if(i == 0 && j == 1) begin // comment to have 40 channels
-                k_low_pass_filter lpf(
-                    .clk(clk),
-                    .reset(reset),
-                    .enable(enable),
-                    .x(x_i[i][j]),
-                    .y(lpf_out[i][j])
-                );
+                //k_low_pass_filter lpf(
+                //    .clk(clk),
+                //    .reset(reset),
+                //    .enable(enable),
+                //    .x(x_i[i][j]),
+                //    .y(lpf_out[i][j])
+                //);
+                //
+                //IIRFilter_integrator_optimized hpf(
+                //    .clk(clk),
+                //    .reset(reset),
+                //    .n_1_reset(n_1_reset),
+                //    .enable(enable),
+                //    .x(resta_out[i][j]),
+                //    //.x(x_i[i][j]),
+                //    .y(hpf_out[i][j])
+                //);
+                //
+                //filtroIIR_movmean25_cfd mov_mean_cfd(
+                //    .clk(clk),
+                //    .reset(reset),
+                //    .n_1_reset(n_1_reset),
+                //    .enable(enable),
+                //    .output_selector(tm_output_selector),
+                //    .threshold(threshold_levels[i*8 + j]),
+                //    .x(hpf_out[i][j]),
+                //    .trigger(trigger_output[i*8 + j]),
+                //    .y(movmean_out[i][j])
+                //);
 
-                IIRFilter_integrator_optimized hpf(
-                    .clk(clk),
-                    .reset(reset),
-                    .n_1_reset(n_1_reset),
-                    .enable(enable),
-                    .x(resta_out[i][j]),
-                    //.x(x_i[i][j]),
-                    .y(hpf_out[i][j])
-                );
-
-                filtroIIR_movmean25_cfd mov_mean_cfd(
-                    .clk(clk),
-                    .reset(reset),
-                    .n_1_reset(n_1_reset),
-                    .enable(enable),
-                    .output_selector(tm_output_selector),
-                    .threshold(threshold_levels[i*8 + j]),
-                    .x(hpf_out[i][j]),
-                    .trigger(trigger_output[i*8 + j]),
-                    .y(movmean_out[i][j])
+                trig_xc EIA_trig(
+                    .reset(reset),                             //=> reset,              in std_logic;              
+                    .clock(clk),                               //=> aclk,               in std_logic;
+                    .din(x_i[i][j][13:0]),                     //=> afe_dat,            in std_logic_vector(13 downto 0);
+                    .baseline(baseline_wire),                  //=> open,               out std_logic_vector(13 downto 0);
+                    .threshold(threshold_wire[41:0]),          //=> threshold_xc,       in std_logic_vector(41 downto 0);
+                    .triggered(trigger_output[i*8 + j]),       //=> triggered_xc,       out std_logic;
+                    .trigsample(trigsample_wire)               //=> trigsample_xc       out std_logic_vector(13 downto 0)
                 );
 
                 /*always @(*) begin
@@ -163,6 +177,8 @@ module hpf_pedestal_recovery_filter_trigger(
 		end
 		
 	endgenerate
+
+    assign threshold_wire = {threshold_levels[3][15:0],threshold_levels[2][15:0],threshold_levels[1][15:0]};
 	
     assign threshold_value_read = threshold_value_read_reg;
     assign tm_output_selector = (output_selector == 2'b00) ?   1'b0 : //hpf 

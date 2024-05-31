@@ -37,6 +37,12 @@ read_verilog ../core/pedestal_recov_filters/constant_fraction_discriminator.v
 read_verilog ../core/pedestal_recov_filters/mi_trigger_module.v
 read_verilog ../core/pedestal_recov_filters/filtroIIR_movmean25_cfd.v
 
+# EIA modules
+
+read_vhdl ../core/pedestal_recov_filters/st_xc.vhd
+read_vhdl ../core/pedestal_recov_filters/st_xc_filt.vhd
+read_vhdl ../core/pedestal_recov_filters/trig_xc.vhd
+
 read_vhdl ../oei/hdl/burst_traffic_controller.vhd
 read_vhdl ../oei/hdl/ethernet_interface.vhd
 read_vhdl ../oei/hdl/params_package.vhd
