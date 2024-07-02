@@ -130,7 +130,7 @@ module hpf_pedestal_recovery_filter_trigger(
                     .reset(reset),                             //=> reset,              in std_logic;              
                     .clock(clk),                               //=> aclk,               in std_logic;
                     .din(x_i[i][j][13:0]),                     //=> afe_dat,            in std_logic_vector(13 downto 0);
-                    .baseline(baseline_wire),                  //=> open,               out std_logic_vector(13 downto 0);
+                    //.baseline(baseline_wire),                  //=> open,               out std_logic_vector(13 downto 0);
                     .threshold(threshold_wire[41:0]),          //=> threshold_xc,       in std_logic_vector(41 downto 0);
                     .triggered(trigger_output[i*8 + j]),       //=> triggered_xc,       out std_logic;
                     .trigsample(trigsample_wire)               //=> trigsample_xc       out std_logic_vector(13 downto 0)

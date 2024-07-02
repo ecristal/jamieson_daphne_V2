@@ -5,7 +5,7 @@
 
 # general setup stuff...
 
-set_param general.maxThreads 4
+set_param general.maxThreads 1
 set outputDir ./output
 file mkdir $outputDir
 set_part xc7a200t-fbg676-2
@@ -149,7 +149,7 @@ report_timing -sort_by group -max_paths 100 -path_type summary -file $outputDir/
 # route...
 
 route_design -directive HigherDelayCost
-# phys_opt_design -directive AggressiveExplore
+phys_opt_design -directive AggressiveExplore
 # write_checkpoint -force $outputDir/post_route
 
 # generate reports...
