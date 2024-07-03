@@ -74,12 +74,12 @@ signal Slope_Threshold: std_logic_vector(6 downto 0); -- Slope_Threshold (signed
 signal Interface_LOCAL_Primitves_IN_reg: std_logic_vector(23 downto 0);
 signal Detection: std_logic; -- ACTIVE HIGH During detection and Local primitives calculation 
 -- PEAK DETECTION signals
-signal din_delay1, din_delay2, din_delay3: std_logic_vector (13 downto 0); -- Delayed values of the incomming signal
+signal din_delay1, din_delay2, din_delay3, din_delay4, din_delay5, din_delay6, din_delay7, din_delay8, din_delay9, din_delay10: std_logic_vector (13 downto 0); -- Delayed values of the incomming signal
+signal din_delay11, din_delay12, din_delay13, din_delay14, din_delay15, din_delay16, din_delay17, din_delay18, din_delay19, din_delay20: std_logic_vector (13 downto 0); -- Delayed values of the incomming signal
 signal Slope_Current: std_logic_vector(13 downto 0) := (others=>'0'); -- Current value of slope
-signal Slope_select: std_logic_vector(14 downto 0) := (others=>'0'); -- Depending on the Slope calculatin signal which delayed signal to select x(n-1) or x(n-2)
-signal Slope_substract: std_logic_vector(14 downto 0) := (others=>'0'); -- Current value of slope
+signal Slope_select: std_logic_vector(14 downto 0) := (others=>'0'); -- Depending on the Slope calculatin signal which delayed signal to select x(n-16) or x(n-20)
 signal Slope_Aux: std_logic_vector(14 downto 0) := (others=>'0'); -- Final value calculated. Depending on the Slope calculatin signal which delayed signal to select [x(n) - x(n-1)] or [x(n) - x(n-2)] / 2  
-signal Slope_Sign_Current, Slope_Sign_Previous: std_logic :='0'; -- sign of the slope noy and delayed 1 cycle. 
+--signal Slope_Sign_Current, Slope_Sign_Previous: std_logic :='0'; -- sign of the slope noy and delayed 1 cycle. 
 
 signal Peak_Current: std_logic :='0';-- ACTIVE HIGH when a peak is detected. 
 type Peak_State is   (Allow_Peak_Detection, Not_Allow_Peak_Detection);
@@ -88,17 +88,10 @@ signal Allow_Peak: std_logic :='0';
 -- SELF-TRIGGER signals
 signal self_trigger_aux: std_logic := '0'; -- Self-Trigger signal. ACTIVE HIGH
 
--- post reset stabilization signals --> 32 clk cylcles so all the delays are properly filled
-signal Reset_Timer: integer:=32; -- 32 clk
+-- post reset stabilization signals --> 64 clk cylcles so all the delays are properly filled
+signal Reset_Timer: integer:=64; -- 64 clk
 signal Not_allow_Trigger: std_logic;
-CONSTANT Reset_Timer_cnt : integer := 32; -- 32 clk
--- signal Previous_Frame: std_logic := '0'; -- This bit is HIGH when the self-trigger is activated by a parcial waveform  
--- DATA SENDING CONTROL signals
---signal Data_Sent_Count: integer:=960; -- 1024 total samples - 64 pretrigger samples
---CONSTANT Frame_Size : integer := 960; -- 1024 total samples - 64 pretrigger samples
---type Data_State is   (Not_Sending_Data, Sending_Data);
---signal CurrentState_Data, NextState_Data: Data_State;
---signal Sending: std_logic:='0'; -- ACTIVE HIGH when data is being sent
+CONSTANT Reset_Timer_cnt : integer := 64; -- 64 clk
 
 begin
 
@@ -113,7 +106,7 @@ end process Get_Config_Params;
 -- Config_Param[0] --> '0' = Peak detector as self-trigger  / '1' = Main detection as Self-Trigger (Undershoot peaks will not trigger)
 -- Config_Param[1] --> '0' = NOT ALLOWED  Self-Trigger with light pulse between 2 data adquisition frames   
 --                 --> '1' = ALLOWED Self-Trigger with light pulse between 2 data adquisition frames
--- Config_Param[2] --> '0' = Slope calculation with 2 consecutive samples --> x(n) - x(n-1)  / '1' = Slope calculation with 3 consecutive samples --> [x(n) - x(n-2)] / 2 
+-- Config_Param[2] --> '0' = Slope (More likely to be an Amplitude) calculation with 16 consecutive samples --> x(n) - x(n-1)  / '1' = Slope calculation with 20 consecutive samples --> [x(n) - x(n-20)] 
 -- Config_Param[9 downto 3] --> Slope_Threshold (signed) 1(sign) + 6 bits, must be negative.
 Main_Peak_Self_Trigger              <= Config_Param_Reg(0);
 Allow_PartialWavefrom_Self_Trigger  <= Config_Param_Reg(1);
@@ -122,17 +115,15 @@ Slope_Threshold                     <= Config_Param_Reg(9 downto 3);
 
 ----------------------- PEAK DETECTOR    -----------------------
 
--- Slope Calculation
--- [x(n) - x(n-1)]  or    [x(n) - x(n-2)] / 2 
-Slope_substract <=std_logic_vector(signed('0' & din_delay1)- signed(Slope_select));
-Slope_Calculation_Arithmetic: process(Slope_Config_Calculation, din_delay3, din_delay2, Slope_substract)
+-- Slope Calculation --> Looking for the full SPE slope (Depending on filter ti takes between 16 and 20 clk tics to have it) 
+-- [x(n) - x(n-16)]  or    [x(n) - x(n-20)]  
+Slope_Aux <=std_logic_vector(signed('0' & din_delay1)- signed(Slope_select));
+Slope_Calculation_Arithmetic: process(Slope_Config_Calculation, din_delay16, din_delay20)
 begin
     if (Slope_Config_Calculation ='0') then
-        Slope_select <= '0' & din_delay2;
-        Slope_Aux <= Slope_substract; 
+        Slope_select <= '0' & din_delay16; 
     else
-        Slope_select <= '0' & din_delay3;
-        Slope_Aux  <= std_logic_vector(shift_right(signed(Slope_substract), 1));
+        Slope_select <= '0' & din_delay20;
     end if;
 end process Slope_Calculation_Arithmetic;
 
@@ -140,19 +131,53 @@ Slope_Calculation_Synch: process(clock, reset)
 begin
     if (clock'event and clock='1') then
         if(reset='1')then
-            din_delay1 <= din;
-            din_delay2 <= din;
-            din_delay3 <= din;
-            Slope_Current <= (others=>'0');
-            Slope_Sign_Current <= '0';
-            Slope_Sign_Previous <= '0';  
+            din_delay1          <= din;
+            din_delay2          <= din;
+            din_delay3          <= din;
+            din_delay4          <= din;
+            din_delay5          <= din;
+            din_delay6          <= din;
+            din_delay7          <= din;
+            din_delay8          <= din;
+            din_delay9          <= din;
+            din_delay10         <= din;
+            din_delay11         <= din;
+            din_delay12         <= din;
+            din_delay13         <= din;
+            din_delay14         <= din;
+            din_delay15         <= din;
+            din_delay16         <= din;
+            din_delay17         <= din;
+            din_delay18         <= din;
+            din_delay19         <= din;
+            din_delay20         <= din;
+            Slope_Current       <= (others=>'0');
+            --Slope_Sign_Current  <= '0';
+            --Slope_Sign_Previous <= '0';  
         else
-            din_delay1 <= din;
-            din_delay2 <= din_delay1;
-            din_delay3 <= din_delay2;
-            Slope_Sign_Previous <= Slope_Sign_Current;
-            Slope_Current <= Slope_Aux(13 downto 0);
-            Slope_Sign_Current <= Slope_Aux(13);
+            din_delay1          <= din;
+            din_delay2          <= din_delay1;
+            din_delay3          <= din_delay2;
+            din_delay4          <= din_delay3;
+            din_delay5          <= din_delay4;
+            din_delay6          <= din_delay5;
+            din_delay7          <= din_delay6;
+            din_delay8          <= din_delay7;
+            din_delay9          <= din_delay8;
+            din_delay10         <= din_delay9;
+            din_delay11         <= din_delay10;
+            din_delay12         <= din_delay11;
+            din_delay13         <= din_delay12;
+            din_delay14         <= din_delay13;
+            din_delay15         <= din_delay14;
+            din_delay16         <= din_delay15;
+            din_delay17         <= din_delay16;
+            din_delay18         <= din_delay17;
+            din_delay19         <= din_delay18;
+            din_delay20         <= din_delay19;
+            --Slope_Sign_Previous     <= Slope_Sign_Current;
+            Slope_Current           <= Slope_Aux(13 downto 0);
+            --Slope_Sign_Current      <= Slope_Aux(13);
         end if;
     end if;
 end process Slope_Calculation_Synch;
@@ -165,7 +190,6 @@ begin
     if (clock'event and clock='1') then
         if (reset='1') then
             Peak_Current <= '0';
-            -- Allow_Peak <= '0';
         else
             if((signed(Slope_Current)<=signed(std_logic_vector(resize(signed(Slope_Threshold),14)))) and (Allow_Peak = '1')) then -- Calulate trigger signal based on a threshold over the Slope
                 Peak_Current <= '1'; 
@@ -180,7 +204,8 @@ end process Peak_Detection;
 -- This Finite Sate Machine determines if peak detection is allowed or not. Avoids contious detection when slope is under a threshold. 
 --      * Allow_Peak --> Peak detection is allowed 
 --      * Not_Allow_Peak --> When a peak is detected, no more peaks are allowed until slope changes sign (from negative to positive)
-Next_State_Allow: process(CurrentState_Peak,Slope_Sign_Previous, Slope_Sign_Current, Slope_Current, Slope_Threshold)
+--Next_State_Allow: process(CurrentState_Peak,Slope_Sign_Previous, Slope_Sign_Current, Slope_Current, Slope_Threshold)
+Next_State_Allow: process(CurrentState_Peak, Slope_Current, Slope_Threshold)
 begin
     case CurrentState_Peak is
         when Allow_Peak_Detection =>
@@ -190,7 +215,8 @@ begin
                 NextState_Peak <= Allow_Peak_Detection; 
             end if;
         when Not_Allow_Peak_Detection =>
-            if((Slope_Sign_Previous='1') and (Slope_Sign_Current='0')) then
+            --if((Slope_Sign_Previous='1') and (Slope_Sign_Current='0')) then
+            if(signed(Slope_Current)>(signed(std_logic_vector(resize(signed(Slope_Threshold),14)))+5)) then
                 NextState_Peak <= Allow_Peak_Detection;
             else
                 NextState_Peak <= Not_Allow_Peak_Detection;
@@ -219,23 +245,6 @@ end process Output_Allow;
 
 
 ----------------------- SELF TRIGGER LOGIC    -----------------------
-
---Self_Trigger_Condition: process(Peak_Current, Detection, Main_Peak_Self_Trigger, Allow_PartialWavefrom_Self_Trigger, Sending_Data)
---begin
---    if (Main_Peak_Self_Trigger ='0') then
---        self_trigger_aux <= Peak_Current;
---    else
---        self_trigger_aux <= ((Peak_Current) and (not(Detection)));
---    end if;
-    
---    if (Allow_PartialWavefrom_Self_Trigger='1') then 
---        self_trigger_aux <= (Detection and (not(Sending_Data)));
---        --Previous_Frame <='1';
---    end if; 
---end process Self_Trigger_Condition;
-
-
---Self_trigger <= self_trigger_aux;
 
 Self_trigger <=(((Peak_Current) and (not(Main_Peak_Self_Trigger))) or ((Main_Peak_Self_Trigger) and (Peak_Current) and (not(Detection))) or ((Allow_PartialWavefrom_Self_Trigger) and (Detection) and (not(Sending_Data))))and (not(Not_allow_Trigger));
 

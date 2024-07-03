@@ -134,6 +134,7 @@ SIGNAL Config_Param_Reg: std_logic_vector (13 downto 0);
 SIGNAL din_aux : std_logic_vector(13 downto 0):= "00000000000000";
 SIGNAL Config_Param_FILTER_aux: std_logic_vector(3 downto 0);
 SIGNAL filtered_dout_aux: std_logic_vector(13 downto 0);
+SIGNAL filtered_dout_aux_delay: std_logic_vector(13 downto 0);
 
 -- SELF TRIGGER SIGNALS
 SIGNAL Config_Param_SELF_aux: std_logic_vector(9 downto 0);
@@ -231,7 +232,7 @@ UUT3 : LocalPrimitives_CIEMAT
     clock =>  clock_aux,                                                -- AFE clock
     reset=>  reset_aux,                                                 -- Reset signal. ACTIVE HIGH
     Self_trigger=> Self_trigger_aux,                                    -- Self-Trigger signal comming from the Self-Trigger block
-    din=>  filtered_dout_aux,                                                     -- Data coming from the Filter Block / Raw data from AFEs
+    din=>  filtered_dout_aux_delay,                                                     -- Data coming from the Filter Block / Raw data from AFEs
     Interface_LOCAL_Primitves_IN=>  Interface_LOCAL_Primitves_OUT_aux,   -- Interface with Local Primitives calculation BLOCK --> DEPENDS ON SELF-TRIGGER ALGORITHM 
     Interface_LOCAL_Primitves_OUT=>  Interface_LOCAL_Primitves_IN_aux, -- Interface with Local Primitives calculation BLOCK --> DEPENDS ON SELF-TRIGGER ALGORITHM 
     Data_Available=>  Data_Available_aux,                               -- ACTIVE HIGH when LOCAL primitives are calculated
@@ -660,7 +661,7 @@ begin
         if (Self_trigger_aux = '1') then
             Trigger_dly53 <= Trigger_dly53 sll 1;
             Trigger_dly53(0) <= '1';
-        elsif (Noise_aux='1') then
+        elsif ((Noise_aux='1') and (Config_Param_SELF_aux(0)='1')) then -- only main detections use the noise check 
             Trigger_dly53 <= (others => '0');
         else
             Trigger_dly53 <= Trigger_dly53 sll 1;
@@ -670,6 +671,18 @@ end process Trigger_Propagation;
 --Noise_OR <= Noise_64(0) or Noise_64(1) or Noise_64(2) or Noise_64(3) or Noise_64(4) or Noise_64(5) or Noise_64(6) or Noise_64(7) or Noise_64(8) or Noise_64(9) or Noise_64(10) or Noise_64(11) or Noise_64(12) or Noise_64(13) or Noise_64(14) or Noise_64(15) or Noise_64(16) or Noise_64(17) or Noise_64(18) or Noise_64(19) or Noise_64(20) or Noise_64(21) or Noise_64(22) or Noise_64(23) or Noise_64(24) or Noise_64(25) or Noise_64(26) or Noise_64(27) or Noise_64(28) or Noise_64(29) or Noise_64(30) or Noise_64(31) or Noise_64(32) or Noise_64(33) or Noise_64(34) or Noise_64(35) or Noise_64(36) or Noise_64(37) or Noise_64(38) or Noise_64(39) or Noise_64(40) or Noise_64(41) or Noise_64(42) or Noise_64(43) or Noise_64(44) or Noise_64(45) or Noise_64(46) or Noise_64(47) or Noise_64(48) or Noise_64(49) or Noise_64(50) or Noise_64(51) or Noise_64(52) or Noise_64(53) or Noise_64(54) or Noise_64(55) or Noise_64(56) or Noise_64(57) or Noise_64(58) or Noise_64(59) or Noise_64(60) or Noise_64(61) or Noise_64(62) or Noise_64(63);  
 Self_trigger_out_aux <= to_stdulogic(Trigger_dly53(53)); 
 
+----------------------- GENERATE DELAY FOR FILTERED SIGNAL (Takes into account delay of trigger, for primitve calculation)   -----------------------
+gendelay: for i in 13 downto 0 generate
+        srlc32e_0_inst : srlc32e
+        port map(
+            clk => clock_aux,
+            ce => '1',
+            a => "00010",
+            d => filtered_dout_aux(i), -- real time filtered data
+            q => filtered_dout_aux_delay(i), -- Filtered data 8 cycles ago 
+            q31 => open 
+        );
+end generate gendelay;
 ----------------------- INPUT SIGNALS   -----------------------
 clock_aux           <= clock;
 reset_aux           <= reset;

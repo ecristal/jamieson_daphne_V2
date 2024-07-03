@@ -55,7 +55,8 @@ port(
 end Filter_CIEMAT;
 
 architecture Behavioral of Filter_CIEMAT is
-
+-- DELAY INPUT signals 
+signal din_delay1, din_delay2, din_delay3: std_logic_vector(13 downto 0);
 -- CONFIGURATION signals 
 signal Config_Param_Reg : std_logic_vector(3 downto 0):="1000";
 signal Enable: std_logic :='1'; -- Enable Signal. Active HIGH
@@ -66,37 +67,33 @@ signal First_Filtered_out: std_logic_vector(13 downto 0); -- First stage silter 
 -- Filter SECOND stage signals 
 signal Second_Filtered_delay1, Second_Filtered_delay2, Second_Filtered_delay3, Second_Filtered_delay4, Second_Filtered_delay5, Second_Filtered_delay6: std_logic_vector(13 downto 0); 
 signal Second_Filtered_delay7, Second_Filtered_delay8, Second_Filtered_delay9, Second_Filtered_delay10, Second_Filtered_delay11, Second_Filtered_delay12: std_logic_vector(13 downto 0); 
-signal Second_Filtered_delay13, Second_Filtered_delay14, Second_Filtered_delay15,Second_Filtered_delay16, Second_Filtered_delay17, Second_Filtered_delay18 : std_logic_vector(13 downto 0); -- Buffer for Simple moving average filtering
-signal Second_Filtered_delay19, Second_Filtered_delay20, Second_Filtered_delay21,Second_Filtered_delay22, Second_Filtered_delay23, Second_Filtered_delay24 : std_logic_vector(13 downto 0); -- Buffer for Simple moving average filtering
-signal Second_Filtered_delay25, Second_Filtered_delay26, Second_Filtered_delay27, Second_Filtered_delay28,Second_Filtered_delay29 : std_logic_vector(13 downto 0); -- Buffer for Simple moving average filtering
-signal Second_Filtered_out: std_logic_vector(13 downto 0);-- Second stage silter output (real and delayed)
---signal Second_Filtered_select: std_logic_vector(14 downto 0); -- Select which element from the buffer to substract --> x(n-k)
---signal Second_Filtered_substract: std_logic_vector(14 downto 0); --    x(n) - x(n-k)
---signal Second_Filtered_substract_REG: std_logic_vector(14 downto 0); --    x(n) - x(n-k) REGISTERED
---signal Second_Filtered_substract_NEGATIVE: std_logic_vector(14 downto 0); --   -[x(n) - x(n-k)]
---signal Second_Filtered_substract_NEGATIVE_REG: std_logic_vector(14 downto 0); --   -[x(n) - x(n-k)] REGISTERED
---signal Second_Filtered_shift: std_logic_vector(14 downto 0); -- [x(n) - x(n-k)] / k
-signal Second_Filtered_add: std_logic_vector(13 downto 0); -- SMA(n-1) + [ [x(n) - x(n-k)] / k ]
-signal Second_Filtered_Sum1_aux, Second_Filtered_Sum1_reg: std_logic_vector(17 downto 0); 
-signal Second_Filtered_Sum2_aux, Second_Filtered_Sum2_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum3_aux, Second_Filtered_Sum3_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum4_aux, Second_Filtered_Sum4_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum5_aux, Second_Filtered_Sum5_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum6_aux, Second_Filtered_Sum6_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum7_aux, Second_Filtered_Sum7_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum8_aux, Second_Filtered_Sum8_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum9_aux, Second_Filtered_Sum9_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum10_aux, Second_Filtered_Sum10_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum11_aux, Second_Filtered_Sum11_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum12_aux, Second_Filtered_Sum12_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum13_aux, Second_Filtered_Sum13_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum14_aux, Second_Filtered_Sum14_reg: std_logic_vector(17 downto 0);
-signal Second_Filtered_Sum15_aux, Second_Filtered_Sum15_reg: std_logic_vector(17 downto 0);
+signal Second_Filtered_delay13, Second_Filtered_delay14, Second_Filtered_delay15,Second_Filtered_delay16: std_logic_vector(13 downto 0); -- Buffer for Simple moving average filtering
+signal Second_Filtered_out, Second_Filtered_out_delay1 : std_logic_vector(13 downto 0);-- Second stage silter output (real and delayed)
+signal Second_Filtered_add, Second_Filtered_add_2: std_logic_vector(14 downto 0); -- SMA(n-1) + [ [x(n) - x(n-k)] / k ]
+signal Second_Filtered_add_reg : std_logic_vector(13 downto 0);
 
--- post reset stabilization signals --> 32 clk cylcles so all the delays are properly filled
-signal Reset_Timer: integer:=32; -- 32 clk
+signal Second_Filtered_Dif_aux, Second_Filtered_Dif_reg: std_logic_vector(13 downto 0);
+signal Second_Filtered_Err_aux : std_logic_vector(12 downto 0);
+signal Second_Filtered_Select: std_logic_vector(13 downto 0);
+
+signal Second_Filtered_2_delay1, Second_Filtered_2_delay2, Second_Filtered_2_delay3, Second_Filtered_2_delay4, Second_Filtered_2_delay5, Second_Filtered_2_delay6: std_logic_vector(13 downto 0); 
+signal Second_Filtered_2_delay7, Second_Filtered_2_delay8, Second_Filtered_2_delay9, Second_Filtered_2_delay10, Second_Filtered_2_delay11, Second_Filtered_2_delay12: std_logic_vector(13 downto 0); 
+signal Second_Filtered_2_delay13, Second_Filtered_2_delay14, Second_Filtered_2_delay15,Second_Filtered_2_delay16: std_logic_vector(13 downto 0); -- Buffer for Simple moving average filtering
+signal Second_Filtered_2_out, Second_Filtered_2_out_delay1 : std_logic_vector(13 downto 0);-- Second stage silter output (real and delayed)
+signal Second_Filtered_2_add, Second_Filtered_2_add_2: std_logic_vector(14 downto 0); -- SMA(n-1) + [ [x(n) - x(n-k)] / k ]
+signal Second_Filtered_2_add_reg : std_logic_vector(13 downto 0);
+
+signal Second_Filtered_2_Dif_aux, Second_Filtered_2_Dif_reg: std_logic_vector(13 downto 0);
+signal Second_Filtered_2_Err_aux : std_logic_vector(12 downto 0);
+signal Second_Filtered_2_Select: std_logic_vector(13 downto 0);
+
+--signal Third_Filtered_out: std_logic_vector(13 downto 0);-- Third stage filter output (real and delayed)
+--signal Third_Filtered_add: std_logic_vector(14 downto 0);
+
+-- post reset stabilization signals --> 64 clk cylcles so all the delays are properly filled
+signal Reset_Timer: integer:=64; -- 64 clk
 signal Not_allow_Filter: std_logic;
-CONSTANT Reset_Timer_cnt : integer := 32; -- 32 clk
+CONSTANT Reset_Timer_cnt : integer := 64; -- 64 clk
 
 begin
 
@@ -114,6 +111,23 @@ end process Get_Config_Params;
 Enable                      <= Config_Param_Reg(0);
 First_Stage_LSB             <= Config_Param_Reg(1);
 Second_Stage_Window_Size    <= Config_Param_Reg(3 downto 2);
+
+----------------------- EXTRA DELAYS of input signal --> So the filter signal is in phase with the Raw data               -----------------------
+
+Din_Delay_Stage: process(clock, reset)
+begin
+    if (clock'event and clock='1') then
+        if(reset='1')then
+            din_Delay1 <= (others =>'0');
+            din_Delay2 <= (others =>'0');
+            din_Delay3 <= (others =>'0');
+        else
+            din_Delay1 <= din;
+            din_Delay2 <= din_Delay1;
+            din_Delay3 <= din_Delay2;
+        end if;
+    end if;
+end process Din_Delay_Stage;
 
 
 ----------------------- FIRST STAGE OF THE FILTER: Truncating LSBs               -----------------------
@@ -134,68 +148,26 @@ begin
 end process First_Filter_Stage;
 
 
------------------------ SECOND STAGE OF THE FILTER: Simple Moving Average        -----------------------
---Second_Filter_Select4    <= std_logic_vector(shift_right(unsigned(Second_Filtered_Sum15),4));
---Second_Filter_Select3    <= std_logic_vector(shift_right(unsigned(Second_Filtered_Sum7),3));
---Second_Filter_Select2    <= std_logic_vector(shift_right(unsigned(Second_Filtered_Sum3),2));
---Second_Filter_Select1    <= std_logic_vector(shift_right(unsigned(Second_Filtered_Sum1),1));
-Second_Filtered_Sum15_aux    <= std_logic_vector(unsigned(Second_Filtered_Sum14_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay29),18)));
-Second_Filtered_Sum14_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum13_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay27),18)));
-Second_Filtered_Sum13_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum12_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay25),18)));
-Second_Filtered_Sum12_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum11_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay23),18)));
-Second_Filtered_Sum11_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum10_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay21),18)));
-Second_Filtered_Sum10_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum9_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay19),18)));
-Second_Filtered_Sum9_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum8_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay17),18)));
-Second_Filtered_Sum8_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum7_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay15),18)));
-Second_Filtered_Sum7_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum6_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay13),18)));
-Second_Filtered_Sum6_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum5_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay11),18)));
-Second_Filtered_Sum5_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum4_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay9),18)));
-Second_Filtered_Sum4_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum3_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay7),18)));
-Second_Filtered_Sum3_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum2_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay5),18)));
-Second_Filtered_Sum2_aux     <= std_logic_vector(unsigned(Second_Filtered_Sum1_reg)+unsigned(resize(unsigned('0'& Second_Filtered_delay3),18)));
-Second_Filtered_Sum1_aux     <= std_logic_vector(unsigned(resize(unsigned('0'& First_Filtered_out),18))+unsigned(resize(unsigned('0'& Second_Filtered_delay1),18)));
-
+----------------------- SECOND STAGE OF THE FILTER: Low pass filtering to reduce High Freq noise    -----------------------
 
 ---- Filter Arithmetic Operations for the filter
---Second_Filtered_substract <= std_logic_vector(signed('0' & First_Filtered_out)- signed(Second_Filtered_select));
---Second_Filtered_substract_NEGATIVE <= std_logic_vector(-(signed('0' & First_Filtered_out)- signed(Second_Filtered_select)));
---Second_Filtered_add <= std_logic_vector(signed('0' & Second_Filtered_out)+signed(Second_Filtered_shift));
+Second_Filtered_Dif_aux      <= std_logic_vector(unsigned("000" & First_Filtered_out(13 downto 3)) - unsigned("000" & Second_Filtered_Select(13 downto 3)));
+Second_Filtered_Err_aux      <= std_logic_vector(unsigned('0' & First_Filtered_out(13 downto 2)) - unsigned('0' & Second_Filtered_add_reg(13 downto 2)));
+Second_Filtered_add          <= std_logic_vector(signed('0' & Second_Filtered_add_reg) + signed(resize(signed(Second_Filtered_Err_aux ),15)));-- + signed(resize(signed(Second_Filtered_Dif_aux),15)));
+Second_Filtered_add_2        <= std_logic_vector(signed('0' & Second_Filtered_add_reg) + signed(resize(signed(Second_Filtered_Dif_reg ),15)));
+
+
 ---- Selects which element from the buffer to pick, and the shift (division)
---Second_Filter_Stage_Arithmetic: process(Second_Stage_Window_Size, Second_Filtered_substract_REG,Second_Filtered_substract_NEGATIVE_REG, Second_Filtered_delay2, Second_Filtered_delay4, Second_Filtered_delay8, Second_Filtered_delay16)
-Second_Filter_Stage_Arithmetic: process(Second_Stage_Window_Size, Second_Filtered_Sum1_reg, Second_Filtered_Sum3_reg, Second_Filtered_Sum7_reg, Second_Filtered_Sum15_reg)
+Second_Filter_Stage_Arithmetic: process(Second_Stage_Window_Size, Second_Filtered_delay2, Second_Filtered_delay4, Second_Filtered_delay8, Second_Filtered_delay16)
 begin
     if (Second_Stage_Window_Size = "00") then
-        Second_Filtered_add <= Second_Filtered_Sum1_reg(14 downto 1);
---            Second_Filtered_select <= "0" & Second_Filtered_delay2;
---            if(Second_Filtered_substract_REG(14)='0') then
---                Second_Filtered_shift  <= ('0' & Second_Filtered_substract_REG(14 downto 1)); 
---            else
---                Second_Filtered_shift  <= std_logic_vector( - signed('0' & Second_Filtered_substract_NEGATIVE_REG(14 downto 1))); 
---            end if;    
+        Second_Filtered_Select <= Second_Filtered_delay2;
     elsif (Second_Stage_Window_Size = "01") then
-        Second_Filtered_add <= Second_Filtered_Sum3_reg(15 downto 2);               
---            Second_Filtered_select <= "0" & Second_Filtered_delay4;
---            if(Second_Filtered_substract_REG(14)='0') then
---                Second_Filtered_shift  <= ("00" & Second_Filtered_substract_REG(14 downto 2)); 
---            else
---                Second_Filtered_shift  <= std_logic_vector( - signed("00" & Second_Filtered_substract_NEGATIVE_REG(14 downto 2))); 
---            end if;
+        Second_Filtered_Select <= Second_Filtered_delay4;               
     elsif (Second_Stage_Window_Size = "10") then 
-        Second_Filtered_add <= Second_Filtered_Sum7_reg(16 downto 3);         
---            Second_Filtered_select <= "0" & Second_Filtered_delay8;
---            if(Second_Filtered_substract_REG(14)='0') then
---                Second_Filtered_shift  <= ("000" & Second_Filtered_substract_REG(14 downto 3)); 
---            else
---                Second_Filtered_shift  <= std_logic_vector( - signed("000" & Second_Filtered_substract_NEGATIVE_REG(14 downto 3))); 
---            end if;
+        Second_Filtered_Select <= Second_Filtered_delay8;         
     else
-        Second_Filtered_add <= Second_Filtered_Sum15_reg(17 downto 4);    
---            Second_Filtered_select <= "0" & Second_Filtered_delay16;
---            if(Second_Filtered_substract_REG(14)='0') then
---                Second_Filtered_shift  <= ("0000" & Second_Filtered_substract_REG(14 downto 4)); 
---            else
---                Second_Filtered_shift  <= std_logic_vector( - signed("0000" & Second_Filtered_substract_NEGATIVE_REG(14 downto 4))); 
---            end if;
+        Second_Filtered_Select <= Second_Filtered_delay16;    
     end if;
 end process Second_Filter_Stage_Arithmetic;
 
@@ -204,35 +176,6 @@ Second_Filter_Stage: process(clock, reset)
 begin
     if (clock'event and clock='1') then
         if(reset='1')then
---            Second_Filtered_delay1      <= First_Filtered_out;
---            Second_Filtered_delay2      <= First_Filtered_out; 
---            Second_Filtered_delay3      <= First_Filtered_out; 
---            Second_Filtered_delay4      <= First_Filtered_out; 
---            Second_Filtered_delay5      <= First_Filtered_out; 
---            Second_Filtered_delay6      <= First_Filtered_out; 
---            Second_Filtered_delay7      <= First_Filtered_out; 
---            Second_Filtered_delay8      <= First_Filtered_out; 
---            Second_Filtered_delay9      <= First_Filtered_out; 
---            Second_Filtered_delay10     <= First_Filtered_out; 
---            Second_Filtered_delay11     <= First_Filtered_out; 
---            Second_Filtered_delay12     <= First_Filtered_out; 
---            Second_Filtered_delay13     <= First_Filtered_out; 
---            Second_Filtered_delay14     <= First_Filtered_out; 
---            Second_Filtered_delay15     <= First_Filtered_out;
---            Second_Filtered_delay16      <= First_Filtered_out;
---            Second_Filtered_delay17     <= First_Filtered_out; 
---            Second_Filtered_delay18      <= First_Filtered_out; 
---            Second_Filtered_delay19      <= First_Filtered_out; 
---            Second_Filtered_delay20      <= First_Filtered_out; 
---            Second_Filtered_delay21      <= First_Filtered_out; 
---            Second_Filtered_delay22      <= First_Filtered_out; 
---            Second_Filtered_delay23      <= First_Filtered_out; 
---            Second_Filtered_delay24      <= First_Filtered_out; 
---            Second_Filtered_delay25     <= First_Filtered_out; 
---            Second_Filtered_delay26     <= First_Filtered_out; 
---            Second_Filtered_delay27     <= First_Filtered_out; 
---            Second_Filtered_delay28     <= First_Filtered_out; 
---            Second_Filtered_delay29     <= First_Filtered_out; 
             Second_Filtered_delay1      <= (others =>'0');
             Second_Filtered_delay2      <= (others =>'0'); 
             Second_Filtered_delay3      <= (others =>'0'); 
@@ -248,41 +191,11 @@ begin
             Second_Filtered_delay13     <= (others =>'0'); 
             Second_Filtered_delay14     <= (others =>'0'); 
             Second_Filtered_delay15     <= (others =>'0');
-            Second_Filtered_delay16      <= (others =>'0');
-            Second_Filtered_delay17      <= (others =>'0'); 
-            Second_Filtered_delay18      <= (others =>'0'); 
-            Second_Filtered_delay19      <= (others =>'0'); 
-            Second_Filtered_delay20      <= (others =>'0'); 
-            Second_Filtered_delay21      <= (others =>'0');
-            Second_Filtered_delay22      <= (others =>'0');
-            Second_Filtered_delay23      <= (others =>'0'); 
-            Second_Filtered_delay24      <= (others =>'0');
-            Second_Filtered_delay25     <= (others =>'0'); 
-            Second_Filtered_delay26     <= (others =>'0');
-            Second_Filtered_delay27     <= (others =>'0'); 
-            Second_Filtered_delay28     <= (others =>'0'); 
-            Second_Filtered_delay29     <= (others =>'0'); 
-            Second_Filtered_Sum1_reg    <= (others =>'0');
-            Second_Filtered_Sum2_reg    <= (others =>'0');
-            Second_Filtered_Sum3_reg    <= (others =>'0');
-            Second_Filtered_Sum4_reg    <= (others =>'0');
-            Second_Filtered_Sum5_reg    <= (others =>'0');
-            Second_Filtered_Sum6_reg    <= (others =>'0');
-            Second_Filtered_Sum7_reg    <= (others =>'0');
-            Second_Filtered_Sum8_reg    <= (others =>'0');
-            Second_Filtered_Sum9_reg    <= (others =>'0');
-            Second_Filtered_Sum10_reg    <= (others =>'0');
-            Second_Filtered_Sum11_reg    <= (others =>'0');
-            Second_Filtered_Sum12_reg    <= (others =>'0');
-            Second_Filtered_Sum13_reg    <= (others =>'0');
-            Second_Filtered_Sum14_reg    <= (others =>'0');
-            Second_Filtered_Sum15_reg    <= (others =>'0');
-           
-            -- Second_Filtered_delay16     <= First_Filtered_out;
-            -- Second_Filtered_substract_REG <= (OTHERS=>'0');
-            -- Second_Filtered_substract_NEGATIVE_REG <= (OTHERS=>'0');
+            Second_Filtered_delay16     <= (others =>'0');
+            Second_Filtered_add_reg     <= (others =>'0');
+            Second_Filtered_Dif_reg     <= (others =>'0');
             Second_Filtered_out         <= (others =>'0');
-            --Second_Filtered_out         <= First_Filtered_out;  
+            --Second_Filtered_out_delay1   <= (others =>'0');
         else
             Second_Filtered_delay1      <= First_Filtered_out;
             Second_Filtered_delay2      <= Second_Filtered_delay1; 
@@ -299,55 +212,86 @@ begin
             Second_Filtered_delay13     <= Second_Filtered_delay12; 
             Second_Filtered_delay14     <= Second_Filtered_delay13; 
             Second_Filtered_delay15     <= Second_Filtered_delay14;
-            Second_Filtered_delay16      <= Second_Filtered_delay15;
-            Second_Filtered_delay17     <= Second_Filtered_delay16; 
-            Second_Filtered_delay18      <= Second_Filtered_delay17; 
-            Second_Filtered_delay19      <= Second_Filtered_delay18;
-            Second_Filtered_delay20      <= Second_Filtered_delay19; 
-            Second_Filtered_delay21      <= Second_Filtered_delay20; 
-            Second_Filtered_delay22      <= Second_Filtered_delay21; 
-            Second_Filtered_delay23      <= Second_Filtered_delay22; 
-            Second_Filtered_delay24      <= Second_Filtered_delay23; 
-            Second_Filtered_delay25     <= Second_Filtered_delay24; 
-            Second_Filtered_delay26     <= Second_Filtered_delay25; 
-            Second_Filtered_delay27     <= Second_Filtered_delay26; 
-            Second_Filtered_delay28     <= Second_Filtered_delay27; 
-            Second_Filtered_delay29     <= Second_Filtered_delay28;
-            Second_Filtered_Sum1_reg    <= Second_Filtered_Sum1_aux;
-            Second_Filtered_Sum2_reg    <= Second_Filtered_Sum2_aux;
-            Second_Filtered_Sum3_reg    <= Second_Filtered_Sum3_aux;
-            Second_Filtered_Sum4_reg    <= Second_Filtered_Sum4_aux;
-            Second_Filtered_Sum5_reg    <= Second_Filtered_Sum5_aux;
-            Second_Filtered_Sum6_reg    <= Second_Filtered_Sum6_aux;
-            Second_Filtered_Sum7_reg    <= Second_Filtered_Sum7_aux;
-            Second_Filtered_Sum8_reg    <= Second_Filtered_Sum8_aux;
-            Second_Filtered_Sum9_reg    <= Second_Filtered_Sum9_aux;
-            Second_Filtered_Sum10_reg    <= Second_Filtered_Sum10_aux;
-            Second_Filtered_Sum11_reg    <= Second_Filtered_Sum11_aux;
-            Second_Filtered_Sum12_reg    <= Second_Filtered_Sum12_aux;
-            Second_Filtered_Sum13_reg    <= Second_Filtered_Sum13_aux;
-            Second_Filtered_Sum14_reg    <= Second_Filtered_Sum14_aux;
-            Second_Filtered_Sum15_reg    <= Second_Filtered_Sum15_aux;  
-            -- Second_Filtered_delay16     <= Second_Filtered_delay15;
-            -- Second_Filtered_substract_REG <= Second_Filtered_substract;
-            -- Second_Filtered_substract_NEGATIVE_REG <= Second_Filtered_substract_NEGATIVE;
-            Second_Filtered_out         <= Second_Filtered_add(13 downto 0);
---            if (Second_Stage_Window_Size = "00") then
---                --Second_Filtered_out         <= Second_Filtered_add(13 downto 0);
---                Second_Filtered_out <= Second_Filter_Select1(13 downto 0);
---            elsif (Second_Stage_Window_Size = "01") then
---                --Second_Filtered_out         <= Second_Filtered_add(15 downto 2);
---                Second_Filtered_out <= Second_Filter_Select2(13 downto 0);
---            elsif (Second_Stage_Window_Size = "10") then
---                --Second_Filtered_out         <= Second_Filtered_add(16 downto 3);
---                Second_Filtered_out <= Second_Filter_Select3(13 downto 0);              
---            else
---                --Second_Filtered_out         <= Second_Filtered_add(17 downto 4);
---                Second_Filtered_out <= Second_Filter_Select4(13 downto 0); 
---            end if;     
+            Second_Filtered_delay16     <= Second_Filtered_delay15; 
+            Second_Filtered_add_reg     <= Second_Filtered_add(13 downto 0);
+            Second_Filtered_Dif_reg     <= Second_Filtered_Dif_aux;
+            --Second_Filtered_out_delay1   <= Second_Filtered_out;
+            Second_Filtered_out         <= Second_Filtered_add_2(13 downto 0);   
         end if;
     end if;
 end process Second_Filter_Stage;
+
+-- Filter Arithmetic Operations for the filter
+Second_Filtered_2_Dif_aux      <= std_logic_vector(unsigned("000" & Second_Filtered_out(13 downto 3)) - unsigned("000" & Second_Filtered_2_Select(13 downto 3)));
+Second_Filtered_2_Err_aux      <= std_logic_vector(unsigned('0' & Second_Filtered_out(13 downto 2)) - unsigned('0' & Second_Filtered_2_add_reg(13 downto 2)));
+Second_Filtered_2_add          <= std_logic_vector(signed('0' & Second_Filtered_2_add_reg) + signed(resize(signed(Second_Filtered_2_Err_aux ),15)));-- + signed(resize(signed(Second_Filtered_Dif_aux),15)));
+Second_Filtered_2_add_2        <= std_logic_vector(signed('0' & Second_Filtered_2_add_reg) + signed(resize(signed(Second_Filtered_2_Dif_reg ),15)));
+
+
+---- Selects which element from the buffer to pick, and the shift (division)
+Second_Filter_2_Stage_Arithmetic: process(Second_Stage_Window_Size, Second_Filtered_2_delay2, Second_Filtered_2_delay4, Second_Filtered_2_delay8, Second_Filtered_2_delay16)
+begin
+    if (Second_Stage_Window_Size = "00") then
+        Second_Filtered_2_Select <= Second_Filtered_2_delay2;
+    elsif (Second_Stage_Window_Size = "01") then
+        Second_Filtered_2_Select <= Second_Filtered_2_delay4;               
+    elsif (Second_Stage_Window_Size = "10") then 
+        Second_Filtered_2_Select <= Second_Filtered_2_delay8;         
+    else
+        Second_Filtered_2_Select <= Second_Filtered_2_delay16;    
+    end if;
+end process Second_Filter_2_Stage_Arithmetic;
+
+-- synchronous buffering data and filter output
+Second_Filter_2_Stage: process(clock, reset)
+begin
+    if (clock'event and clock='1') then
+        if(reset='1')then
+            Second_Filtered_2_delay1      <= (others =>'0');
+            Second_Filtered_2_delay2      <= (others =>'0'); 
+            Second_Filtered_2_delay3      <= (others =>'0'); 
+            Second_Filtered_2_delay4      <= (others =>'0'); 
+            Second_Filtered_2_delay5      <= (others =>'0'); 
+            Second_Filtered_2_delay6      <= (others =>'0'); 
+            Second_Filtered_2_delay7      <= (others =>'0'); 
+            Second_Filtered_2_delay8      <= (others =>'0'); 
+            Second_Filtered_2_delay9      <= (others =>'0');
+            Second_Filtered_2_delay10     <= (others =>'0'); 
+            Second_Filtered_2_delay11     <= (others =>'0');
+            Second_Filtered_2_delay12     <= (others =>'0'); 
+            Second_Filtered_2_delay13     <= (others =>'0'); 
+            Second_Filtered_2_delay14     <= (others =>'0'); 
+            Second_Filtered_2_delay15     <= (others =>'0');
+            Second_Filtered_2_delay16     <= (others =>'0');
+            Second_Filtered_2_add_reg     <= (others =>'0');
+            Second_Filtered_2_Dif_reg     <= (others =>'0');
+            Second_Filtered_2_out         <= (others =>'0');
+            --Second_Filtered_2_out_delay1  <= (others =>'0');
+        else
+            Second_Filtered_2_delay1      <= Second_Filtered_out;
+            Second_Filtered_2_delay2      <= Second_Filtered_2_delay1; 
+            Second_Filtered_2_delay3      <= Second_Filtered_2_delay2; 
+            Second_Filtered_2_delay4      <= Second_Filtered_2_delay3; 
+            Second_Filtered_2_delay5      <= Second_Filtered_2_delay4; 
+            Second_Filtered_2_delay6      <= Second_Filtered_2_delay5; 
+            Second_Filtered_2_delay7      <= Second_Filtered_2_delay6; 
+            Second_Filtered_2_delay8      <= Second_Filtered_2_delay7; 
+            Second_Filtered_2_delay9      <= Second_Filtered_2_delay8; 
+            Second_Filtered_2_delay10     <= Second_Filtered_2_delay9; 
+            Second_Filtered_2_delay11     <= Second_Filtered_2_delay10; 
+            Second_Filtered_2_delay12     <= Second_Filtered_2_delay11; 
+            Second_Filtered_2_delay13     <= Second_Filtered_2_delay12; 
+            Second_Filtered_2_delay14     <= Second_Filtered_2_delay13; 
+            Second_Filtered_2_delay15     <= Second_Filtered_2_delay14;
+            Second_Filtered_2_delay16     <= Second_Filtered_2_delay15; 
+            Second_Filtered_2_add_reg     <= Second_Filtered_2_add(13 downto 0);
+            Second_Filtered_2_Dif_reg     <= Second_Filtered_2_Dif_aux;
+            --Second_Filtered_2_out_delay1  <= Second_Filtered_2_out;
+            Second_Filtered_2_out         <= Second_Filtered_2_add_2(13 downto 0);   
+        end if;
+    end if;
+end process Second_Filter_2_Stage;
+
 
 
 ----------------------- TIMER AFTER RESET       -----------------------
@@ -370,15 +314,30 @@ begin
     end if;
 end process Timer_Reset_Stage;
 
+------------------------- THIRD STAGE OF THE FILTER: DC BLOCKER (High - Pass Filter) -----------------------
 
+------ Filter Arithmetic Operations for the filter
+--Third_Filtered_add          <= std_logic_vector(signed('0' & Second_Filtered_2_out) - signed('0' & Second_Filtered_2_out_delay1) + signed(resize(signed(Third_Filtered_out(13 downto 1) ),15))+ signed(resize(signed(Third_Filtered_out(13 downto 2) ),15))+ signed(resize(signed(Third_Filtered_out(13 downto 3) ),15))+ signed(resize(signed(Third_Filtered_out(13 downto 4) ),15)));
+
+---- synchronous buffering data and filter output
+--Third_Filter_Stage: process(clock, reset)
+--begin
+--    if (clock'event and clock='1') then
+--        if(reset='1')then
+--            Third_Filtered_out         <= (others =>'0');
+--        else
+--            Third_Filtered_out         <= Third_Filtered_add(13 downto 0);  
+--        end if;
+--    end if;
+--end process Third_Filter_Stage;
 ----------------------- OUTPUT SELECTION: Filtered / Not Filtered                -----------------------
 
-Output: process(Enable, Second_Filtered_out, din, Not_allow_Filter)
+Output: process(Enable, Second_Filtered_2_out, din_Delay3, Not_allow_Filter)
 begin
     if((Enable='1') and (Not_allow_Filter='0'))then
-        filtered_dout <= Second_Filtered_out;
+        filtered_dout <= Second_Filtered_2_out;
     else
-        filtered_dout <= din; 
+        filtered_dout <= din_Delay3; 
     end if;
 end process Output;
 
